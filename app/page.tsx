@@ -142,7 +142,8 @@ const amount = (value: number) =>
   new Intl.NumberFormat("ko-KR", { maximumFractionDigits: 0 }).format(value);
 
 const numberValue = (value: string) => {
-  const parsed = Number(value.replaceAll(",", ""));
+  const digitsOnly = value.replace(/[^0-9]/g, "");
+  const parsed = Number(digitsOnly);
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
@@ -553,9 +554,10 @@ export default function QuoteBuilder() {
                           placeholder="예: 특수 촬영 구성"
                         />
                         <input
-                          type="number"
-                          min="0"
-                          value={item.amount}
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9,]*"
+                          value={item.amount > 0 ? amount(item.amount) : ""}
                           onChange={(event) =>
                             updateCustomItem(
                               item.id,
@@ -822,10 +824,6 @@ export default function QuoteBuilder() {
                         <strong>{amount(finalAmount)}</strong>
                       </div>
                     </div>
-                    <div className="signature-area">
-                      <span>CEO Signature</span>
-                      <img src="/assets/ceo-signature.png" alt="CEO Signature" />
-                    </div>
                   </div>
 
                   <div className="contract-note">
@@ -840,12 +838,19 @@ export default function QuoteBuilder() {
                 </footer>
 
                 <div className="quote-brand-mark">
-                  <img
-                    src="/assets/photoclinic-logo.png?v=3"
-                    alt="PHOTO CLINIC"
-                    className="brand-logo-image"
-                  />
-                  <p>제이크이미지연구소 · 병원 전문 브랜드 촬영</p>
+                  <div className="signature-area brand-signature">
+                    <span>CEO Signature</span>
+                    <img src="/assets/ceo-signature.png" alt="CEO Signature" />
+                  </div>
+                  <div className="brand-logo-stack">
+                    <img
+                      src="/assets/photoclinic-logo.png?v=3"
+                      alt="PHOTO CLINIC"
+                      className="brand-logo-image"
+                    />
+                    <p>제이크이미지연구소 · 병원 전문 브랜드 촬영</p>
+                  </div>
+                  <div className="brand-mark-spacer" aria-hidden="true" />
                 </div>
               </div>
             </div>
