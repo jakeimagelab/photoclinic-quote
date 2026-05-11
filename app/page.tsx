@@ -888,10 +888,7 @@ export default function QuoteBuilder() {
                 </footer>
 
                 <div className="quote-brand-mark">
-                  <div className="signature-area brand-signature">
-                    <span>CEO Signature</span>
-                    <img src="/assets/ceo-signature.png" alt="CEO Signature" />
-                  </div>
+                  <div className="brand-mark-spacer" aria-hidden="true" />
                   <div className="brand-logo-stack">
                     <img
                       src="/assets/photoclinic-logo.png?v=3"
@@ -900,7 +897,10 @@ export default function QuoteBuilder() {
                     />
                     <p>제이크이미지연구소 · 병원 전문 브랜드 촬영</p>
                   </div>
-                  <div className="brand-mark-spacer" aria-hidden="true" />
+                  <div className="signature-area brand-signature">
+                    <span>Director Signature</span>
+                    <img src="/assets/ceo-signature.png" alt="Director Signature" />
+                  </div>
                 </div>
               </div>
             </div>

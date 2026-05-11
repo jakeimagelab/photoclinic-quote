@@ -603,7 +603,20 @@ textarea:focus {
 .client-strip strong {
   min-width: 0;
   overflow-wrap: anywhere;
+  word-break: break-word;
   font-weight: 600;
+  color: #222222;
+  text-decoration: none !important;
+  -webkit-text-decoration: none !important;
+}
+
+
+.quote-preview a,
+.quote-page a,
+.quote-paper a,
+.client-strip a {
+  color: inherit !important;
+  text-decoration: none !important;
 }
 
 .estimate-table-wrap {
@@ -870,9 +883,10 @@ textarea:focus {
 }
 
 .brand-signature {
-  justify-self: start;
+  justify-self: end;
   align-self: center;
-  margin-left: 34px;
+  margin-left: 0;
+  margin-right: 22px;
   transform: translateY(10px);
 }
 
