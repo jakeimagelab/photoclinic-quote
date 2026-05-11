@@ -8,7 +8,9 @@ import {
   RefreshCcw,
   Trash2,
   UserRound,
-  WalletCards
+  WalletCards,
+  ZoomIn,
+  ZoomOut
 } from "lucide-react";
 
 type PackageOption = {
@@ -161,17 +163,25 @@ export default function QuoteBuilder() {
   const [discountRate, setDiscountRate] = useState(0);
   const [memo, setMemo] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [previewScale, setPreviewScale] = useState(0.48);
-
+  const [basePreviewScale, setBasePreviewScale] = useState(0.48);
+  const [previewZoom, setPreviewZoom] = useState(1);
+  const previewScale = Number((basePreviewScale * previewZoom).toFixed(3));
+  const previewPercent = Math.round(previewZoom * 100);
 
   useEffect(() => {
     const shell = previewShellRef.current;
     if (!shell) return;
 
     const updateScale = () => {
-      const availableWidth = shell.clientWidth - 20;
-      const nextScale = Math.min(1, Math.max(0.28, availableWidth / 1123));
-      setPreviewScale(Number(nextScale.toFixed(3)));
+      const style = window.getComputedStyle(shell);
+      const paddingX =
+        Number.parseFloat(style.paddingLeft || "0") + Number.parseFloat(style.paddingRight || "0");
+      const borderX =
+        Number.parseFloat(style.borderLeftWidth || "0") + Number.parseFloat(style.borderRightWidth || "0");
+      const shellWidth = shell.getBoundingClientRect().width;
+      const availableWidth = Math.max(0, shellWidth - paddingX - borderX - 2);
+      const nextScale = Math.min(1, Math.max(0.12, availableWidth / 1123));
+      setBasePreviewScale(Number(nextScale.toFixed(3)));
     };
 
     updateScale();
@@ -184,6 +194,18 @@ export default function QuoteBuilder() {
       window.removeEventListener("resize", updateScale);
     };
   }, []);
+
+  const zoomOutPreview = () => {
+    setPreviewZoom((value) => Math.max(0.7, Number((value - 0.1).toFixed(1))));
+  };
+
+  const zoomInPreview = () => {
+    setPreviewZoom((value) => Math.min(1.8, Number((value + 0.1).toFixed(1))));
+  };
+
+  const resetPreviewZoom = () => {
+    setPreviewZoom(1);
+  };
 
   const selectedPackage = useMemo(
     () => packages.find((item) => item.id === selectedPackageId) ?? null,
@@ -598,9 +620,22 @@ export default function QuoteBuilder() {
         </div>
 
         <aside className="lg:sticky lg:top-8 lg:self-start">
-          <div className="mb-3 flex items-center justify-between px-1">
-            <p className="text-sm font-bold text-[#155855]">실시간 견적서 미리보기</p>
-            <p className="text-xs text-[#797168]">A4 가로형 1페이지</p>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3 px-1">
+            <div>
+              <p className="text-sm font-bold text-[#155855]">실시간 견적서 미리보기</p>
+              <p className="text-xs text-[#797168]">A4 가로형 1페이지 · 100%는 화면 맞춤</p>
+            </div>
+            <div className="preview-zoom-controls" aria-label="견적서 미리보기 확대 축소">
+              <button type="button" onClick={zoomOutPreview} aria-label="미리보기 축소">
+                <ZoomOut size={16} />
+              </button>
+              <button type="button" onClick={resetPreviewZoom} className="zoom-percent" aria-label="미리보기 확대 비율 초기화">
+                {previewPercent}%
+              </button>
+              <button type="button" onClick={zoomInPreview} aria-label="미리보기 확대">
+                <ZoomIn size={16} />
+              </button>
+            </div>
           </div>
 
           <div className="preview-shell" ref={previewShellRef}>
