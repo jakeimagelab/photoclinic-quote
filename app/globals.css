@@ -29,6 +29,13 @@ body {
   word-break: keep-all;
 }
 
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 button,
 input,
 textarea,
@@ -394,7 +401,10 @@ textarea:focus {
 }
 
 .preview-shell {
+  width: 100%;
+  max-width: 100%;
   overflow: auto;
+  overscroll-behavior-x: contain;
   border-radius: 8px;
   background: #e8e0d4;
   padding: 14px;
@@ -405,6 +415,7 @@ textarea:focus {
   position: relative;
   margin: 0 auto;
   overflow: hidden;
+  flex: 0 0 auto;
 }
 
 .quote-page {
@@ -860,6 +871,18 @@ textarea:focus {
   }
 }
 
+@media (max-width: 480px) {
+  .preview-shell {
+    padding: 8px;
+    border-radius: 6px;
+  }
+
+  .preview-zoom-controls {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 @media (max-width: 640px) {
   .item-row {
     grid-template-columns: 1fr 112px 38px;
@@ -874,4 +897,41 @@ textarea:focus {
     width: 100%;
     grid-template-columns: 44px 1fr 44px;
   }
+}
+
+.preview-zoom-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(21, 88, 85, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 4px;
+  box-shadow: 0 8px 18px rgba(21, 88, 85, 0.08);
+}
+
+.preview-zoom-controls button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #155855;
+  font-weight: 800;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.preview-zoom-controls button:hover {
+  background: rgba(21, 88, 85, 0.09);
+  transform: translateY(-1px);
+}
+
+.preview-zoom-controls .zoom-percent {
+  min-width: 56px;
+  padding: 0 10px;
+  color: #e85d2c;
+  font-size: 12px;
 }
