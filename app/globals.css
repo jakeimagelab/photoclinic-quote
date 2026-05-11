@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@700;800&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -27,6 +29,13 @@ body {
   background: var(--ivory);
   color: var(--ink);
   word-break: keep-all;
+}
+
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 button,
@@ -393,8 +402,24 @@ textarea:focus {
   transform: translateY(-1px);
 }
 
+
+.action-button-bar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+  padding: 12px;
+  border: 1px solid rgba(21, 88, 85, 0.15);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 12px 28px rgba(21, 88, 85, 0.12);
+}
+
 .preview-shell {
+  width: 100%;
+  max-width: 100%;
   overflow: auto;
+  overscroll-behavior-x: contain;
   border-radius: 8px;
   background: #e8e0d4;
   padding: 14px;
@@ -405,6 +430,7 @@ textarea:focus {
   position: relative;
   margin: 0 auto;
   overflow: hidden;
+  flex: 0 0 auto;
 }
 
 .quote-page {
@@ -513,11 +539,12 @@ textarea:focus {
 .quote-hero h2 {
   margin: 0;
   color: var(--orange-soft);
-  font-size: 30px;
-  font-weight: 900;
-  line-height: 1.24;
+  font-family: "Nanum Myeongjo", "Noto Serif KR", "AppleMyungjo", serif;
+  font-size: 31px;
+  font-weight: 800;
+  line-height: 1.28;
   text-align: right;
-  letter-spacing: 0;
+  letter-spacing: -0.02em;
   word-break: keep-all;
   overflow-wrap: anywhere;
 }
@@ -816,8 +843,6 @@ textarea:focus {
   justify-items: center;
   gap: 0;
   width: 112px;
-  margin-left: auto;
-  margin-right: 8px;
 }
 
 .signature-area span {
@@ -835,10 +860,34 @@ textarea:focus {
 
 .quote-brand-mark {
   display: grid;
+  grid-template-columns: 160px 1fr 160px;
+  align-items: center;
   justify-items: center;
+  gap: 12px;
+  margin-top: 4px;
+  padding-bottom: 0;
+  min-height: 72px;
+}
+
+.brand-signature {
+  justify-self: start;
+  align-self: center;
+  margin-left: 34px;
+  transform: translateY(10px);
+}
+
+.brand-logo-stack {
+  display: grid;
+  justify-items: center;
+  align-items: center;
   gap: 2px;
-  margin-top: 8px;
-  padding-bottom: 8px;
+  width: 100%;
+  text-align: center;
+}
+
+.brand-mark-spacer {
+  width: 160px;
+  height: 1px;
 }
 
 .brand-logo-image {
@@ -846,17 +895,59 @@ textarea:focus {
   width: 78px;
   height: auto;
   object-fit: contain;
+  margin: 0 auto;
 }
 
 .quote-brand-mark p {
+  width: 100%;
   margin: 0;
   color: #6d6d6d;
   font-size: 9px;
+  line-height: 1.35;
+  text-align: center;
 }
 
 @media (max-width: 980px) {
-  .preview-shell {
+  
+.action-button-bar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+  padding: 12px;
+  border: 1px solid rgba(21, 88, 85, 0.15);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 12px 28px rgba(21, 88, 85, 0.12);
+}
+
+.preview-shell {
     padding: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  
+.action-button-bar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+  padding: 12px;
+  border: 1px solid rgba(21, 88, 85, 0.15);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 12px 28px rgba(21, 88, 85, 0.12);
+}
+
+.preview-shell {
+    padding: 8px;
+    border-radius: 6px;
+  }
+
+  .preview-zoom-controls {
+    width: 100%;
+    justify-content: center;
   }
 }
 
@@ -873,5 +964,50 @@ textarea:focus {
   .stepper {
     width: 100%;
     grid-template-columns: 44px 1fr 44px;
+  }
+}
+
+.preview-zoom-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(21, 88, 85, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 4px;
+  box-shadow: 0 8px 18px rgba(21, 88, 85, 0.08);
+}
+
+.preview-zoom-controls button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #155855;
+  font-weight: 800;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.preview-zoom-controls button:hover {
+  background: rgba(21, 88, 85, 0.09);
+  transform: translateY(-1px);
+}
+
+.preview-zoom-controls .zoom-percent {
+  min-width: 56px;
+  padding: 0 10px;
+  color: #e85d2c;
+  font-size: 12px;
+}
+
+@media (max-width: 480px) {
+  .action-button-bar {
+    grid-template-columns: 1fr;
+    margin-top: 20px;
+    padding: 10px;
   }
 }
