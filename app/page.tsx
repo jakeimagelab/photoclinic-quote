@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactElement, ReactNode } from "react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Download,
   Plus,
@@ -148,6 +148,7 @@ const displayDate = (date: string) => date || "-";
 
 export default function QuoteBuilder() {
   const previewRef = useRef<HTMLDivElement>(null);
+  const previewShellRef = useRef<HTMLDivElement>(null);
   const [customer, setCustomer] = useState<CustomerInfo>(() => initialCustomer());
   const [quoteTitle, setQuoteTitle] = useState("포토클리닉 브랜드사진 견적서");
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(packages[0].id);
@@ -160,6 +161,29 @@ export default function QuoteBuilder() {
   const [discountRate, setDiscountRate] = useState(0);
   const [memo, setMemo] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [previewScale, setPreviewScale] = useState(0.48);
+
+
+  useEffect(() => {
+    const shell = previewShellRef.current;
+    if (!shell) return;
+
+    const updateScale = () => {
+      const availableWidth = shell.clientWidth - 20;
+      const nextScale = Math.min(1, Math.max(0.28, availableWidth / 1123));
+      setPreviewScale(Number(nextScale.toFixed(3)));
+    };
+
+    updateScale();
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(shell);
+    window.addEventListener("resize", updateScale);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateScale);
+    };
+  }, []);
 
   const selectedPackage = useMemo(
     () => packages.find((item) => item.id === selectedPackageId) ?? null,
@@ -269,27 +293,30 @@ export default function QuoteBuilder() {
       ]);
 
       const canvas = await html2canvas(previewRef.current, {
-        scale: 2,
+        scale: 3,
         backgroundColor: "#ffffff",
         useCORS: true,
         width: 1123,
         height: 794,
-        windowWidth: 1123,
-        windowHeight: 794,
+        windowWidth: 1440,
+        windowHeight: 1000,
         onclone: (documentClone) => {
           const quotePage = documentClone.querySelector(".quote-page") as HTMLElement | null;
 
           if (quotePage) {
             quotePage.style.zoom = "1";
+            quotePage.style.transform = "none";
+            quotePage.style.transformOrigin = "top left";
             quotePage.style.width = "1123px";
+            quotePage.style.height = "794px";
             quotePage.style.minHeight = "794px";
           }
         }
       });
 
       const image = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("l", "mm", "a4");
-      pdf.addImage(image, "PNG", 0, 0, 297, 210, undefined, "FAST");
+      const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4", compress: true });
+      pdf.addImage(image, "PNG", 0, 0, 297, 210);
 
       const hospital = customer.hospitalName.trim() || "고객";
       pdf.save(`${hospital}_포토클리닉_견적서_${customer.quoteDate}.pdf`);
@@ -576,8 +603,19 @@ export default function QuoteBuilder() {
             <p className="text-xs text-[#797168]">A4 가로형 1페이지</p>
           </div>
 
-          <div className="preview-shell">
-            <div ref={previewRef} className="quote-page">
+          <div className="preview-shell" ref={previewShellRef}>
+            <div
+              className="quote-preview-viewport"
+              style={{
+                width: `${1123 * previewScale}px`,
+                height: `${794 * previewScale}px`
+              }}
+            >
+            <div
+              ref={previewRef}
+              className="quote-page"
+              style={{ transform: `scale(${previewScale})` }}
+            >
               <aside className="brand-rail">
                 <div className="rail-slogan">
                   <p>브랜드를 담습니다.</p>
@@ -775,6 +813,7 @@ export default function QuoteBuilder() {
                   <p>제이크이미지연구소 · 병원 전문 브랜드 촬영</p>
                 </div>
               </div>
+            </div>
             </div>
           </div>
         </aside>
