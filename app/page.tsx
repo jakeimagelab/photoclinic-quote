@@ -308,6 +308,45 @@ export default function QuoteBuilder() {
   const downloadPdf = async () => {
     if (!previewRef.current) return;
 
+    const pdfWindow = window.open("", "_blank");
+    if (pdfWindow) {
+      pdfWindow.document.write(`
+        <!doctype html>
+        <html lang="ko">
+          <head>
+            <title>포토클리닉 견적서 생성 중</title>
+            <style>
+              body {
+                margin: 0;
+                min-height: 100vh;
+                display: grid;
+                place-items: center;
+                font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+                background: #faf7f2;
+                color: #155855;
+              }
+              .box {
+                text-align: center;
+                padding: 32px;
+                border-radius: 18px;
+                background: #fff;
+                box-shadow: 0 18px 50px rgba(21, 88, 85, 0.12);
+              }
+              strong { display: block; margin-bottom: 8px; font-size: 18px; }
+              span { color: #6f6961; font-size: 14px; }
+            </style>
+          </head>
+          <body>
+            <div class="box">
+              <strong>PDF 견적서를 생성하고 있습니다.</strong>
+              <span>잠시만 기다려주세요.</span>
+            </div>
+          </body>
+        </html>
+      `);
+      pdfWindow.document.close();
+    }
+
     setIsGenerating(true);
     try {
       const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
@@ -342,7 +381,18 @@ export default function QuoteBuilder() {
       pdf.addImage(image, "PNG", 0, 0, 297, 210);
 
       const hospital = customer.hospitalName.trim() || "고객";
-      pdf.save(`${hospital}_포토클리닉_견적서_${customer.quoteDate}.pdf`);
+      const fileName = `${hospital}_포토클리닉_견적서_${customer.quoteDate}.pdf`;
+      const pdfBlob = pdf.output("blob");
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+
+      if (pdfWindow) {
+        pdfWindow.document.title = fileName;
+        pdfWindow.location.href = pdfUrl;
+      } else {
+        pdf.save(fileName);
+      }
+
+      window.setTimeout(() => URL.revokeObjectURL(pdfUrl), 60000);
     } finally {
       setIsGenerating(false);
     }
@@ -609,7 +659,7 @@ export default function QuoteBuilder() {
             />
           </Panel>
 
-          <div className="sticky bottom-3 grid gap-3 rounded-lg border border-[#155855]/15 bg-white/95 p-3 shadow-lg backdrop-blur sm:grid-cols-2">
+          <div className="action-button-bar">
             <button className="primary-button" type="button" onClick={downloadPdf}>
               <Download size={18} />
               {isGenerating ? "PDF 생성 중" : "PDF 다운로드"}
@@ -662,7 +712,7 @@ export default function QuoteBuilder() {
                 <div className="rail-address">
                   <span>TO.</span>
                   <strong>{customer.hospitalName || "병원명"}</strong>
-                  <small>{customer.managerName || "담당자"} 님</small>
+                  <small>{customer.managerName || "담당자"}</small>
                 </div>
                 <div className="rail-notice">
                   <strong>결제 조건</strong>
