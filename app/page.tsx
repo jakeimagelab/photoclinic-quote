@@ -196,16 +196,38 @@ export default function QuoteBuilder() {
     };
   }, []);
 
+  const getPreviewZoomMax = () => {
+    if (typeof window === "undefined") return 1.8;
+    return window.matchMedia("(max-width: 768px)").matches ? 1.35 : 1.8;
+  };
+
+  const keepZoomControlsReachable = () => {
+    window.requestAnimationFrame(() => {
+      const shell = previewShellRef.current;
+      if (!shell) return;
+
+      // 모바일에서 확대 후 가로 스크롤 때문에 전체 페이지가 밀리지 않도록
+      // 미리보기 내부 스크롤만 중앙 기준으로 정리합니다.
+      const maxScrollLeft = Math.max(0, shell.scrollWidth - shell.clientWidth);
+      shell.scrollLeft = Math.min(shell.scrollLeft, maxScrollLeft);
+    });
+  };
+
   const zoomOutPreview = () => {
     setPreviewZoom((value) => Math.max(0.7, Number((value - 0.1).toFixed(1))));
+    keepZoomControlsReachable();
   };
 
   const zoomInPreview = () => {
-    setPreviewZoom((value) => Math.min(1.8, Number((value + 0.1).toFixed(1))));
+    setPreviewZoom((value) => Math.min(getPreviewZoomMax(), Number((value + 0.1).toFixed(1))));
+    keepZoomControlsReachable();
   };
 
   const resetPreviewZoom = () => {
     setPreviewZoom(1);
+    window.requestAnimationFrame(() => {
+      if (previewShellRef.current) previewShellRef.current.scrollLeft = 0;
+    });
   };
 
   const selectedPackage = useMemo(
@@ -400,8 +422,8 @@ export default function QuoteBuilder() {
 
   return (
     <main className="min-h-screen bg-[#faf7f2] text-[#222222]">
-      <section className="mx-auto grid max-w-[1500px] gap-6 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(440px,0.9fr)_minmax(560px,1.1fr)] lg:py-8">
-        <div className="space-y-5">
+      <section className="mx-auto grid max-w-[1500px] min-w-0 gap-6 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(440px,0.9fr)_minmax(560px,1.1fr)] lg:py-8">
+        <div className="min-w-0 space-y-5">
           <header className="rounded-lg border border-[#155855]/15 bg-white px-5 py-5 shadow-sm">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#e85d2c]">
               Photo Clinic Admin
@@ -671,7 +693,7 @@ export default function QuoteBuilder() {
           </div>
         </div>
 
-        <aside className="lg:sticky lg:top-8 lg:self-start">
+        <aside className="min-w-0 lg:sticky lg:top-8 lg:self-start">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3 px-1">
             <div>
               <p className="text-sm font-bold text-[#155855]">실시간 견적서 미리보기</p>

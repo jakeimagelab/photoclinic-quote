@@ -1025,3 +1025,50 @@ textarea:focus {
     padding: 10px;
   }
 }
+
+
+/* Final mobile preview fixes */
+section, aside, .preview-shell {
+  min-width: 0;
+}
+
+.preview-shell {
+  max-width: 100%;
+  contain: layout paint;
+  -webkit-overflow-scrolling: touch;
+}
+
+.preview-zoom-controls,
+.preview-zoom-controls button {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 768px) {
+  .preview-zoom-controls {
+    position: sticky;
+    top: 8px;
+    z-index: 30;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .preview-shell {
+    width: 100%;
+    max-width: calc(100vw - 32px);
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior: contain;
+  }
+
+  .quote-preview-viewport {
+    margin-left: 0;
+    margin-right: 0;
+  }
+}
+
+@media (max-width: 420px) {
+  .preview-shell {
+    max-width: calc(100vw - 24px);
+  }
+}
