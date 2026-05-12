@@ -149,6 +149,14 @@ const numberValue = (value: string) => {
 
 const displayDate = (date: string) => date || "-";
 
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
 export default function QuoteBuilder() {
   const previewRef = useRef<HTMLDivElement>(null);
   const previewShellRef = useRef<HTMLDivElement>(null);
@@ -328,15 +336,20 @@ export default function QuoteBuilder() {
   };
 
   const downloadPdf = async () => {
-    if (!previewRef.current) return;
+    if (!previewRef.current || isGenerating) return;
 
     const pdfWindow = window.open("", "_blank");
-    if (pdfWindow) {
+
+    const writeGeneratingWindow = () => {
+      if (!pdfWindow) return;
+
+      pdfWindow.document.open();
       pdfWindow.document.write(`
         <!doctype html>
         <html lang="ko">
           <head>
             <title>포토클리닉 견적서 생성 중</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
             <style>
               body {
                 margin: 0;
@@ -367,35 +380,109 @@ export default function QuoteBuilder() {
         </html>
       `);
       pdfWindow.document.close();
-    }
+    };
 
+    const writeErrorWindow = (message: string) => {
+      if (!pdfWindow) return;
+
+      pdfWindow.document.open();
+      pdfWindow.document.write(`
+        <!doctype html>
+        <html lang="ko">
+          <head>
+            <title>포토클리닉 견적서 생성 실패</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <style>
+              body {
+                margin: 0;
+                min-height: 100vh;
+                display: grid;
+                place-items: center;
+                font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+                background: #faf7f2;
+                color: #222;
+              }
+              .box {
+                max-width: 520px;
+                margin: 24px;
+                padding: 28px;
+                border-radius: 18px;
+                background: #fff;
+                box-shadow: 0 18px 50px rgba(21, 88, 85, 0.12);
+              }
+              strong { display: block; margin-bottom: 10px; color: #155855; font-size: 18px; }
+              p { margin: 0 0 10px; color: #6f6961; line-height: 1.6; }
+              code { display: block; padding: 12px; border-radius: 10px; background: #faf7f2; color: #e85d2c; white-space: pre-wrap; word-break: break-word; }
+            </style>
+          </head>
+          <body>
+            <div class="box">
+              <strong>PDF 생성에 실패했습니다.</strong>
+              <p>아래 오류 내용을 확인해주세요. 팝업 차단 또는 이미지 로딩 문제일 수 있습니다.</p>
+              <code>${escapeHtml(message)}</code>
+            </div>
+          </body>
+        </html>
+      `);
+      pdfWindow.document.close();
+    };
+
+    writeGeneratingWindow();
     setIsGenerating(true);
+
+    let captureRoot: HTMLDivElement | null = null;
+
     try {
       const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
         import("html2canvas"),
         import("jspdf")
       ]);
 
-      const canvas = await html2canvas(previewRef.current, {
-        scale: 3,
+      // 화면용 미리보기는 transform scale이 적용되어 있으므로,
+      // PDF용으로는 원본 견적서를 복제해 1123 x 794 사이즈로 따로 캡처합니다.
+      // 이렇게 해야 새 창에 "생성 중"만 남거나 PDF가 미리보기와 다르게 나오는 문제를 줄일 수 있습니다.
+      captureRoot = document.createElement("div");
+      captureRoot.setAttribute("aria-hidden", "true");
+      captureRoot.style.position = "fixed";
+      captureRoot.style.left = "-10000px";
+      captureRoot.style.top = "0";
+      captureRoot.style.width = "1123px";
+      captureRoot.style.height = "794px";
+      captureRoot.style.overflow = "hidden";
+      captureRoot.style.background = "#ffffff";
+      captureRoot.style.pointerEvents = "none";
+      captureRoot.style.zIndex = "-1";
+
+      const captureTarget = previewRef.current.cloneNode(true) as HTMLElement;
+      captureTarget.style.width = "1123px";
+      captureTarget.style.height = "794px";
+      captureTarget.style.minHeight = "794px";
+      captureTarget.style.margin = "0";
+      captureTarget.style.transform = "none";
+      captureTarget.style.transformOrigin = "top left";
+      captureTarget.style.zoom = "1";
+
+      captureRoot.appendChild(captureTarget);
+      document.body.appendChild(captureRoot);
+
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
+      }
+
+      await new Promise((resolve) => window.requestAnimationFrame(resolve));
+
+      const canvas = await html2canvas(captureTarget, {
+        scale: 2,
         backgroundColor: "#ffffff",
         useCORS: true,
+        allowTaint: false,
+        logging: false,
         width: 1123,
         height: 794,
-        windowWidth: 1440,
-        windowHeight: 1000,
-        onclone: (documentClone) => {
-          const quotePage = documentClone.querySelector(".quote-page") as HTMLElement | null;
-
-          if (quotePage) {
-            quotePage.style.zoom = "1";
-            quotePage.style.transform = "none";
-            quotePage.style.transformOrigin = "top left";
-            quotePage.style.width = "1123px";
-            quotePage.style.height = "794px";
-            quotePage.style.minHeight = "794px";
-          }
-        }
+        windowWidth: 1123,
+        windowHeight: 794,
+        scrollX: 0,
+        scrollY: 0
       });
 
       const image = canvas.toDataURL("image/png");
@@ -408,14 +495,75 @@ export default function QuoteBuilder() {
       const pdfUrl = URL.createObjectURL(pdfBlob);
 
       if (pdfWindow) {
-        pdfWindow.document.title = fileName;
-        pdfWindow.location.href = pdfUrl;
+        const safeFileName = escapeHtml(fileName);
+        const safePdfUrl = escapeHtml(pdfUrl);
+
+        pdfWindow.document.open();
+        pdfWindow.document.write(`
+          <!doctype html>
+          <html lang="ko">
+            <head>
+              <title>${safeFileName}</title>
+              <meta name="viewport" content="width=device-width, initial-scale=1" />
+              <style>
+                html, body {
+                  width: 100%;
+                  height: 100%;
+                  margin: 0;
+                  background: #2b2b2b;
+                  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+                }
+                .toolbar {
+                  height: 48px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: space-between;
+                  gap: 12px;
+                  padding: 0 14px;
+                  background: #155855;
+                  color: #fff;
+                  box-sizing: border-box;
+                  font-size: 13px;
+                }
+                .toolbar a {
+                  color: #fff;
+                  text-decoration: none;
+                  border: 1px solid rgba(255,255,255,0.45);
+                  border-radius: 999px;
+                  padding: 7px 12px;
+                  white-space: nowrap;
+                }
+                iframe {
+                  width: 100%;
+                  height: calc(100% - 48px);
+                  border: 0;
+                  background: #fff;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="toolbar">
+                <span>${safeFileName}</span>
+                <a href="${safePdfUrl}" download="${safeFileName}">다운로드</a>
+              </div>
+              <iframe src="${safePdfUrl}" title="포토클리닉 견적서 PDF"></iframe>
+            </body>
+          </html>
+        `);
+        pdfWindow.document.close();
       } else {
         pdf.save(fileName);
       }
 
-      window.setTimeout(() => URL.revokeObjectURL(pdfUrl), 60000);
+      window.setTimeout(() => URL.revokeObjectURL(pdfUrl), 120000);
+    } catch (error) {
+      const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+      console.error("PDF generation failed", error);
+      writeErrorWindow(message);
     } finally {
+      if (captureRoot) {
+        captureRoot.remove();
+      }
       setIsGenerating(false);
     }
   };
