@@ -32,6 +32,11 @@ type CustomItem = {
   amount: number;
 };
 
+type BenefitItem = {
+  id: string;
+  name: string;
+};
+
 type CustomerInfo = {
   hospitalName: string;
   managerName: string;
@@ -169,6 +174,7 @@ export default function QuoteBuilder() {
   const [floorCount, setFloorCount] = useState(0);
   const [largeHospital, setLargeHospital] = useState(false);
   const [customItems, setCustomItems] = useState<CustomItem[]>([]);
+  const [benefitItems, setBenefitItems] = useState<BenefitItem[]>([]);
   const [discountRate, setDiscountRate] = useState(0);
   const [memo, setMemo] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -283,6 +289,7 @@ export default function QuoteBuilder() {
   const singleItemsTotal = selectedSingleItems.reduce((sum, item) => sum + item.price, 0);
   const optionsTotal = optionItems.reduce((sum, item) => sum + item.amount, 0);
   const customTotal = customItems.reduce((sum, item) => sum + item.amount, 0);
+  const filteredBenefitItems = benefitItems.filter((item) => item.name.trim());
   const contentSubtotal = packageTotal + singleItemsTotal + optionsTotal + customTotal;
   const discountTotal = Math.round(contentSubtotal * (discountRate / 100));
   const rawSupplyAmount = Math.max(contentSubtotal - discountTotal, 0);
@@ -321,6 +328,20 @@ export default function QuoteBuilder() {
     setCustomItems((items) => items.filter((item) => item.id !== id));
   };
 
+  const addBenefitItem = () => {
+    setBenefitItems((items) => [...items, { id: crypto.randomUUID(), name: "" }]);
+  };
+
+  const updateBenefitItem = (id: string, value: string) => {
+    setBenefitItems((items) =>
+      items.map((item) => (item.id === id ? { ...item, name: value } : item))
+    );
+  };
+
+  const removeBenefitItem = (id: string) => {
+    setBenefitItems((items) => items.filter((item) => item.id !== id));
+  };
+
   const resetForm = () => {
     setCustomer(initialCustomer());
     setQuoteTitle("포토클리닉 브랜드사진 견적서");
@@ -331,6 +352,7 @@ export default function QuoteBuilder() {
     setFloorCount(0);
     setLargeHospital(false);
     setCustomItems([]);
+    setBenefitItems([]);
     setDiscountRate(0);
     setMemo("");
   };
@@ -801,6 +823,48 @@ export default function QuoteBuilder() {
                   </div>
                 )}
               </div>
+
+              <div className="benefit-items-box">
+                <div className="custom-items-head">
+                  <div>
+                    <strong>서비스 및 혜택 품목</strong>
+                    <span>금액 없이 제공 항목만 입력합니다.</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="icon-button"
+                    onClick={addBenefitItem}
+                    aria-label="서비스 및 혜택 품목 추가"
+                    title="서비스 및 혜택 품목 추가"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+                {benefitItems.length === 0 ? (
+                  <p className="empty-text">추가된 서비스 및 혜택 품목이 없습니다.</p>
+                ) : (
+                  <div className="grid gap-3">
+                    {benefitItems.map((item) => (
+                      <div key={item.id} className="benefit-row">
+                        <input
+                          value={item.name}
+                          onChange={(event) => updateBenefitItem(item.id, event.target.value)}
+                          placeholder="예: 촬영 방향 사전 컨설팅 포함"
+                        />
+                        <button
+                          type="button"
+                          className="icon-button"
+                          onClick={() => removeBenefitItem(item.id)}
+                          aria-label="삭제"
+                          title="삭제"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </Panel>
 
@@ -989,6 +1053,20 @@ export default function QuoteBuilder() {
                             <td>기타</td>
                           </tr>
                         ))}
+                      {filteredBenefitItems.length > 0 ? (
+                        <tr className="category-row benefit-category-row">
+                          <td colSpan={5}>서비스 및 혜택</td>
+                        </tr>
+                      ) : null}
+                      {filteredBenefitItems.map((item, index) => (
+                        <tr key={item.id} className="benefit-table-row">
+                          <td>{index + 1}. {item.name}</td>
+                          <td>제공</td>
+                          <td>-</td>
+                          <td>-</td>
+                          <td>금액 미반영</td>
+                        </tr>
+                      ))}
                       {discountRate > 0 ? (
                         <tr className="discount-row">
                           <td>{discountRate}% 할인</td>
