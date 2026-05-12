@@ -311,6 +311,10 @@ textarea:focus {
   gap: 8px;
 }
 
+.item-row-service {
+  grid-template-columns: 1fr 38px;
+}
+
 .custom-items-box {
   display: grid;
   gap: 12px;
@@ -970,6 +974,10 @@ textarea:focus {
     grid-template-columns: 1fr 112px 38px;
   }
 
+  .item-row-service {
+    grid-template-columns: 1fr 38px;
+  }
+
   .quantity-field {
     align-items: flex-start;
     flex-direction: column;
@@ -1070,43 +1078,5 @@ section, aside, .preview-shell {
 @media (max-width: 420px) {
   .preview-shell {
     max-width: calc(100vw - 24px);
-  }
-}
-
-
-/* Service / benefit items */
-.benefit-items-box {
-  display: grid;
-  gap: 12px;
-  margin-top: 4px;
-  border-top: 1px solid #ded7cc;
-  padding-top: 14px;
-}
-
-.benefit-row {
-  display: grid;
-  grid-template-columns: 1fr 38px;
-  gap: 8px;
-}
-
-.benefit-category-row td {
-  background: #f2e6d5 !important;
-  color: #155855 !important;
-}
-
-.benefit-table-row td {
-  background: #fffdfa;
-  color: #3d3933;
-}
-
-.benefit-table-row td:nth-child(3),
-.benefit-table-row td:nth-child(4) {
-  text-align: center;
-  color: #7a7167;
-}
-
-@media (max-width: 640px) {
-  .benefit-row {
-    grid-template-columns: 1fr 38px;
   }
 }

@@ -289,7 +289,8 @@ export default function QuoteBuilder() {
   const singleItemsTotal = selectedSingleItems.reduce((sum, item) => sum + item.price, 0);
   const optionsTotal = optionItems.reduce((sum, item) => sum + item.amount, 0);
   const customTotal = customItems.reduce((sum, item) => sum + item.amount, 0);
-  const filteredBenefitItems = benefitItems.filter((item) => item.name.trim());
+  const visibleCustomItems = customItems.filter((item) => item.name || item.amount > 0);
+  const visibleBenefitItems = benefitItems.filter((item) => item.name);
   const contentSubtotal = packageTotal + singleItemsTotal + optionsTotal + customTotal;
   const discountTotal = Math.round(contentSubtotal * (discountRate / 100));
   const rawSupplyAmount = Math.max(contentSubtotal - discountTotal, 0);
@@ -314,6 +315,13 @@ export default function QuoteBuilder() {
     ]);
   };
 
+  const addBenefitItem = () => {
+    setBenefitItems((items) => [
+      ...items,
+      { id: crypto.randomUUID(), name: "" }
+    ]);
+  };
+
   const updateCustomItem = (
     id: string,
     key: keyof CustomItem,
@@ -326,10 +334,6 @@ export default function QuoteBuilder() {
 
   const removeCustomItem = (id: string) => {
     setCustomItems((items) => items.filter((item) => item.id !== id));
-  };
-
-  const addBenefitItem = () => {
-    setBenefitItems((items) => [...items, { id: crypto.randomUUID(), name: "" }]);
   };
 
   const updateBenefitItem = (id: string, value: string) => {
@@ -823,33 +827,32 @@ export default function QuoteBuilder() {
                   </div>
                 )}
               </div>
-
-              <div className="benefit-items-box">
+              <div className="custom-items-box">
                 <div className="custom-items-head">
                   <div>
-                    <strong>서비스 및 혜택 품목</strong>
-                    <span>금액 없이 제공 항목만 입력합니다.</span>
+                    <strong>서비스 및 혜택</strong>
+                    <span>금액 없이 견적서에 표시합니다.</span>
                   </div>
                   <button
                     type="button"
                     className="icon-button"
                     onClick={addBenefitItem}
-                    aria-label="서비스 및 혜택 품목 추가"
-                    title="서비스 및 혜택 품목 추가"
+                    aria-label="서비스 및 혜택 추가"
+                    title="서비스 및 혜택 추가"
                   >
                     <Plus size={16} />
                   </button>
                 </div>
                 {benefitItems.length === 0 ? (
-                  <p className="empty-text">추가된 서비스 및 혜택 품목이 없습니다.</p>
+                  <p className="empty-text">추가된 서비스 및 혜택이 없습니다.</p>
                 ) : (
                   <div className="grid gap-3">
                     {benefitItems.map((item) => (
-                      <div key={item.id} className="benefit-row">
+                      <div key={item.id} className="item-row item-row-service">
                         <input
                           value={item.name}
                           onChange={(event) => updateBenefitItem(item.id, event.target.value)}
-                          placeholder="예: 촬영 방향 사전 컨설팅 포함"
+                          placeholder="예: 보정본 추가 제공"
                         />
                         <button
                           type="button"
@@ -1042,29 +1045,27 @@ export default function QuoteBuilder() {
                           <td>-</td>
                         </tr>
                       ))}
-                      {customItems
-                        .filter((item) => item.name || item.amount > 0)
-                        .map((item, index) => (
-                          <tr key={item.id}>
-                            <td>{optionItems.length + index + 2}. {item.name || "기타 항목"}</td>
-                            <td></td>
-                            <td>{amount(item.amount)}</td>
-                            <td>{amount(item.amount)}</td>
-                            <td>기타</td>
-                          </tr>
-                        ))}
-                      {filteredBenefitItems.length > 0 ? (
-                        <tr className="category-row benefit-category-row">
+                      {visibleCustomItems.map((item, index) => (
+                        <tr key={item.id}>
+                          <td>{optionItems.length + index + 2}. {item.name || "기타 항목"}</td>
+                          <td></td>
+                          <td>{amount(item.amount)}</td>
+                          <td>{amount(item.amount)}</td>
+                          <td>기타</td>
+                        </tr>
+                      ))}
+                      {visibleBenefitItems.length > 0 ? (
+                        <tr className="category-row">
                           <td colSpan={5}>서비스 및 혜택</td>
                         </tr>
                       ) : null}
-                      {filteredBenefitItems.map((item, index) => (
-                        <tr key={item.id} className="benefit-table-row">
-                          <td>{index + 1}. {item.name}</td>
-                          <td>제공</td>
+                      {visibleBenefitItems.map((item, index) => (
+                        <tr key={item.id}>
+                          <td>{optionItems.length + visibleCustomItems.length + index + 2}. {item.name}</td>
+                          <td></td>
                           <td>-</td>
                           <td>-</td>
-                          <td>금액 미반영</td>
+                          <td>서비스 및 혜택</td>
                         </tr>
                       ))}
                       {discountRate > 0 ? (
