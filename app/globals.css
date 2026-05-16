@@ -1080,3 +1080,421 @@ section, aside, .preview-shell {
     max-width: calc(100vw - 24px);
   }
 }
+
+/* =========================================================
+   Quote version select page
+   ========================================================= */
+.version-select-page {
+  min-height: 100vh;
+  display: grid;
+  align-content: center;
+  gap: 34px;
+  padding: 56px 24px;
+  background:
+    radial-gradient(circle at 20% 12%, rgba(232, 93, 44, 0.08), transparent 30%),
+    radial-gradient(circle at 82% 80%, rgba(22, 34, 56, 0.09), transparent 32%),
+    #faf7f2;
+  color: #1f2933;
+}
+
+.version-select-hero {
+  max-width: 880px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.version-select-hero p {
+  margin: 0 0 10px;
+  color: #e85d2c;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+}
+
+.version-select-hero h1 {
+  margin: 0;
+  color: #162238;
+  font-size: clamp(32px, 5vw, 58px);
+  line-height: 1.12;
+  letter-spacing: -0.06em;
+}
+
+.version-select-hero span {
+  display: block;
+  max-width: 620px;
+  margin: 18px auto 0;
+  color: #5f6673;
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+.version-select-grid {
+  width: min(100%, 1000px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.version-card {
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 34px;
+  border: 1px solid rgba(31, 41, 51, 0.12);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.84);
+  color: inherit;
+  text-decoration: none;
+  box-shadow: 0 22px 60px rgba(22, 34, 56, 0.08);
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.version-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 28px 70px rgba(22, 34, 56, 0.13);
+}
+
+.version-card small {
+  color: #9aa3af;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+}
+
+.version-card h2 {
+  margin: 0;
+  font-size: clamp(22px, 3vw, 34px);
+  letter-spacing: -0.05em;
+}
+
+.version-card p {
+  margin: 10px 0 0;
+  color: #667085;
+  line-height: 1.65;
+}
+
+.version-card strong {
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.version-card-photoclinic {
+  border-top: 6px solid #155855;
+}
+
+.version-card-photoclinic h2,
+.version-card-photoclinic strong {
+  color: #155855;
+}
+
+.version-card-jakeimage {
+  border-top: 6px solid #162238;
+}
+
+.version-card-jakeimage h2,
+.version-card-jakeimage strong {
+  color: #162238;
+}
+
+@media (max-width: 760px) {
+  .version-select-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .version-card {
+    min-height: 220px;
+    padding: 28px;
+  }
+}
+
+/* =========================================================
+   Jake Image Institute quote variant
+   ========================================================= */
+.jake-quote-app {
+  --jake-navy: #162238;
+  --jake-blue: #dce8f5;
+  --jake-gray: #f3f4f6;
+  --jake-line: #d8dde5;
+  --jake-text: #1f2933;
+}
+
+.jake-quote-app .field span,
+.jake-quote-app .custom-items-head strong,
+.jake-quote-app .quantity-field strong {
+  color: var(--jake-navy);
+}
+
+.jake-quote-app input:focus,
+.jake-quote-app textarea:focus {
+  border-color: var(--jake-navy);
+  box-shadow: 0 0 0 3px rgba(22, 34, 56, 0.12);
+}
+
+.jake-quote-app .icon-button {
+  border-color: rgba(22, 34, 56, 0.22);
+  color: var(--jake-navy);
+}
+
+.jake-quote-app .icon-button:hover:not(:disabled) {
+  border-color: var(--jake-navy);
+  background: var(--jake-navy);
+  color: #ffffff;
+}
+
+.jake-quote-app .icon-button:disabled {
+  opacity: 0.36;
+  cursor: not-allowed;
+}
+
+.jake-quote-app .primary-button {
+  border-color: var(--jake-navy);
+  background: var(--jake-navy);
+  box-shadow: 0 12px 24px rgba(22, 34, 56, 0.18);
+}
+
+.jake-quote-app .secondary-button {
+  color: var(--jake-navy);
+  border-color: var(--jake-line);
+}
+
+.jake-quote-app .preview-zoom-controls {
+  border-color: rgba(22, 34, 56, 0.16);
+}
+
+.jake-quote-app .preview-zoom-controls button {
+  color: var(--jake-navy);
+}
+
+.jake-quote-app .preview-zoom-controls button:hover {
+  background: rgba(22, 34, 56, 0.08);
+}
+
+.jake-quote-app .preview-zoom-controls .zoom-percent {
+  color: #4f6f93;
+}
+
+.jake-item-card {
+  display: grid;
+  gap: 14px;
+  padding: 15px;
+  border: 1px solid var(--jake-line);
+  border-radius: 10px;
+  background: #fbfcfe;
+}
+
+.jake-item-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.jake-item-card-head strong {
+  color: var(--jake-navy);
+  font-size: 14px;
+}
+
+.jake-preview-shell {
+  background: #dce2ea;
+}
+
+.jake-quote-page {
+  grid-template-columns: 150px 1fr;
+  border-color: #b5c1cf;
+  color: var(--jake-text);
+  box-shadow: 0 0 0 1px rgba(22, 34, 56, 0.08);
+}
+
+.jake-brand-rail {
+  display: flex;
+  flex-direction: column;
+  min-height: 794px;
+  background: #162238;
+  color: #ffffff;
+  padding: 28px 18px 22px;
+}
+
+.jake-rail-logo {
+  min-height: 170px;
+  display: grid;
+  place-items: center;
+  padding: 10px 0 22px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.jake-rail-logo img {
+  width: 112px;
+  max-height: 138px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+}
+
+.jake-rail-text {
+  display: grid;
+  gap: 8px;
+  padding-top: 22px;
+}
+
+.jake-rail-text strong {
+  font-size: 11px;
+  line-height: 1.4;
+  letter-spacing: 0.16em;
+}
+
+.jake-rail-text span {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.jake-rail-notice {
+  display: grid;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.jake-rail-notice strong {
+  font-size: 11px;
+}
+
+.jake-rail-notice span {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.jake-quote-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 34px 36px 30px 44px;
+}
+
+.jake-quote-hero {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 28px;
+  align-items: start;
+  min-height: 132px;
+}
+
+.jake-quote-hero h2 {
+  margin: 0;
+  color: #162238;
+  font-family: "Nanum Myeongjo", "Noto Serif KR", "AppleMyungjo", serif;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.32;
+  text-align: right;
+  letter-spacing: -0.035em;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.jake-invoice-meta {
+  padding-top: 48px;
+}
+
+.jake-invoice-meta span {
+  color: #162238;
+}
+
+.jake-client-strip {
+  border-top-color: #7f91a7;
+  border-left-color: #7f91a7;
+}
+
+.jake-client-strip div {
+  border-right-color: #7f91a7;
+  border-bottom-color: #7f91a7;
+}
+
+.jake-client-strip span {
+  background: #dce8f5;
+  color: #162238;
+}
+
+.jake-table-wrap {
+  border-left: 18px solid #dce8f5;
+}
+
+.jake-quote-table th {
+  background: #162238;
+  color: #ffffff;
+}
+
+.jake-quote-table th:nth-child(1) { width: 25%; }
+.jake-quote-table th:nth-child(2) { width: 31%; }
+.jake-quote-table th:nth-child(3) { width: 10%; }
+.jake-quote-table th:nth-child(4) { width: 17%; }
+.jake-quote-table th:nth-child(5) { width: 17%; }
+
+.jake-quote-table td:nth-child(2) {
+  text-align: left;
+}
+
+.jake-quote-table td:nth-child(3) {
+  text-align: center;
+}
+
+.jake-quote-table td:nth-child(4),
+.jake-quote-table td:nth-child(5) {
+  text-align: right;
+}
+
+.jake-category-row td {
+  background: #dce8f5;
+  color: #162238;
+}
+
+.jake-quote-bottom {
+  grid-template-columns: 280px 330px 1fr;
+  border-top-color: #7f91a7;
+}
+
+.jake-payment-box strong {
+  background: #162238;
+}
+
+.jake-total-box {
+  border-color: #8b97a7;
+}
+
+.jake-total-box .grand-total strong {
+  background: #162238;
+}
+
+.jake-contract-note strong {
+  color: #162238;
+}
+
+.jake-quote-brand-mark {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  min-height: 72px;
+}
+
+.jake-quote-brand-mark img {
+  width: 118px;
+  max-height: 54px;
+  object-fit: contain;
+}
+
+.jake-quote-brand-mark p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 9px;
+}
+
+@media (max-width: 640px) {
+  .jake-item-card {
+    padding: 13px;
+  }
+}
