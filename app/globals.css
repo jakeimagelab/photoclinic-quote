@@ -1088,35 +1088,39 @@ section, aside, .preview-shell {
   min-height: 100vh;
   display: grid;
   align-content: center;
-  gap: 34px;
-  padding: 56px 24px;
+  gap: 38px;
+  padding: 64px 24px;
   background:
-    radial-gradient(circle at 20% 12%, rgba(232, 93, 44, 0.08), transparent 30%),
-    radial-gradient(circle at 82% 80%, rgba(22, 34, 56, 0.09), transparent 32%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.74), rgba(250, 247, 242, 0.88)),
+    radial-gradient(circle at 12% 16%, rgba(232, 93, 44, 0.12), transparent 30%),
+    radial-gradient(circle at 86% 78%, rgba(22, 34, 56, 0.12), transparent 34%),
     #faf7f2;
   color: #1f2933;
+  word-break: keep-all;
 }
 
 .version-select-hero {
-  max-width: 880px;
+  width: min(100%, 920px);
   margin: 0 auto;
   text-align: center;
 }
 
-.version-select-hero p {
-  margin: 0 0 10px;
+.version-select-hero .version-eyebrow {
+  margin: 0 0 12px;
   color: #e85d2c;
   font-size: 12px;
   font-weight: 900;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.22em;
+  line-height: 1.4;
 }
 
 .version-select-hero h1 {
   margin: 0;
   color: #162238;
-  font-size: clamp(32px, 5vw, 58px);
-  line-height: 1.12;
-  letter-spacing: -0.06em;
+  font-size: clamp(34px, 5vw, 60px);
+  line-height: 1.08;
+  letter-spacing: -0.065em;
+  text-wrap: balance;
 }
 
 .version-select-hero span {
@@ -1126,63 +1130,145 @@ section, aside, .preview-shell {
   color: #5f6673;
   font-size: 15px;
   line-height: 1.75;
+  text-wrap: balance;
 }
 
 .version-select-grid {
-  width: min(100%, 1000px);
+  width: min(100%, 1080px);
   margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 22px;
+  gap: 24px;
 }
 
 .version-card {
-  min-height: 280px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 28px;
-  padding: 34px;
-  border: 1px solid rgba(31, 41, 51, 0.12);
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.84);
+  position: relative;
+  min-height: 320px;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 30px;
+  overflow: hidden;
+  padding: 32px;
+  border: 1px solid rgba(31, 41, 51, 0.1);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.88);
   color: inherit;
   text-decoration: none;
-  box-shadow: 0 22px 60px rgba(22, 34, 56, 0.08);
+  box-shadow: 0 24px 70px rgba(22, 34, 56, 0.08);
+  backdrop-filter: blur(14px);
   transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
 }
 
+.version-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
 .version-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 28px 70px rgba(22, 34, 56, 0.13);
+  transform: translateY(-5px);
+  box-shadow: 0 32px 88px rgba(22, 34, 56, 0.14);
+}
+
+.version-card:hover::before {
+  opacity: 1;
+}
+
+.version-card-top {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.version-logo-box {
+  width: 128px;
+  height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 22px;
+  background: #ffffff;
+  border: 1px solid rgba(31, 41, 51, 0.08);
+  box-shadow: 0 14px 36px rgba(22, 34, 56, 0.08);
+}
+
+.version-logo-box img {
+  display: block;
+  width: auto;
+  max-width: 84%;
+  height: auto;
+  max-height: 74px;
+  object-fit: contain;
+}
+
+.version-logo-jakeimage {
+  width: 148px;
+}
+
+.version-logo-jakeimage img {
+  max-width: 92%;
+  max-height: 78px;
 }
 
 .version-card small {
+  flex: 0 0 auto;
   color: #9aa3af;
   font-size: 12px;
   font-weight: 900;
   letter-spacing: 0.18em;
+  line-height: 1.4;
+}
+
+.version-card-body {
+  position: relative;
+  z-index: 1;
+  align-self: end;
 }
 
 .version-card h2 {
   margin: 0;
-  font-size: clamp(22px, 3vw, 34px);
-  letter-spacing: -0.05em;
+  font-size: clamp(24px, 2.8vw, 34px);
+  line-height: 1.16;
+  letter-spacing: -0.055em;
+  text-wrap: balance;
 }
 
 .version-card p {
-  margin: 10px 0 0;
+  margin: 12px 0 0;
   color: #667085;
+  font-size: 15px;
   line-height: 1.65;
+  text-wrap: balance;
 }
 
 .version-card strong {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
   font-size: 14px;
   font-weight: 900;
+  line-height: 1;
 }
 
 .version-card-photoclinic {
   border-top: 6px solid #155855;
+}
+
+.version-card-photoclinic::before {
+  background: radial-gradient(circle at 15% 15%, rgba(21, 88, 85, 0.08), transparent 42%),
+              linear-gradient(135deg, rgba(232, 93, 44, 0.06), transparent 52%);
 }
 
 .version-card-photoclinic h2,
@@ -1194,21 +1280,81 @@ section, aside, .preview-shell {
   border-top: 6px solid #162238;
 }
 
+.version-card-jakeimage::before {
+  background: radial-gradient(circle at 18% 14%, rgba(220, 232, 245, 0.9), transparent 40%),
+              linear-gradient(135deg, rgba(22, 34, 56, 0.06), transparent 54%);
+}
+
 .version-card-jakeimage h2,
 .version-card-jakeimage strong {
   color: #162238;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 860px) {
+  .version-select-page {
+    align-content: start;
+    padding: 44px 18px;
+  }
+
   .version-select-grid {
     grid-template-columns: 1fr;
+    gap: 18px;
   }
 
   .version-card {
-    min-height: 220px;
-    padding: 28px;
+    min-height: 260px;
+    padding: 26px;
+    border-radius: 24px;
+  }
+
+  .version-card-top {
+    align-items: center;
+  }
+
+  .version-logo-box {
+    width: 108px;
+    height: 82px;
+    border-radius: 18px;
+  }
+
+  .version-logo-jakeimage {
+    width: 128px;
+  }
+
+  .version-card h2 {
+    font-size: clamp(23px, 7vw, 31px);
   }
 }
+
+@media (max-width: 420px) {
+  .version-select-page {
+    padding: 36px 14px;
+  }
+
+  .version-card {
+    min-height: 250px;
+    padding: 22px;
+  }
+
+  .version-logo-box {
+    width: 96px;
+    height: 74px;
+  }
+
+  .version-logo-jakeimage {
+    width: 116px;
+  }
+
+  .version-card h2 {
+    font-size: 24px;
+    letter-spacing: -0.06em;
+  }
+
+  .version-card p {
+    font-size: 14px;
+  }
+}
+
 
 /* =========================================================
    Jake Image Institute quote variant
