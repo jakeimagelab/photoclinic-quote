@@ -326,7 +326,7 @@ export default function JakeImageQuoteBuilder() {
       await new Promise((resolve) => window.requestAnimationFrame(resolve));
 
       const canvas = await html2canvas(captureTarget, {
-        scale: 1.25,
+        scale: 2,
         backgroundColor: "#ffffff",
         useCORS: true,
         allowTaint: false,
@@ -339,9 +339,9 @@ export default function JakeImageQuoteBuilder() {
         scrollY: 0
       });
 
-      const image = canvas.toDataURL("image/jpeg", 0.92);
+      const image = canvas.toDataURL("image/png");
       const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4", compress: true });
-      pdf.addImage(image, "JPEG", 0, 0, 297, 210);
+      pdf.addImage(image, "PNG", 0, 0, 297, 210);
 
       const company = customer.companyName.trim() || "고객";
       const fileName = `${company}_제이크이미지연구소_견적서_${customer.quoteDate}.pdf`;
