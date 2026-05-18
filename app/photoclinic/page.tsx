@@ -971,7 +971,7 @@ export default function QuoteBuilder() {
                       ) : null}
                       {selectedSingleItems.map((item, index) => (
                         <tr key={item.id}>
-                          <td>{index + 1}. {item.name}</td>
+                          <td>{(selectedPackage ? 2 : 1) + index}. {item.name}</td>
                           <td></td>
                           <td>{amount(item.price)}</td>
                           <td>{amount(item.price)}</td>
@@ -980,7 +980,7 @@ export default function QuoteBuilder() {
                       ))}
                       {optionItems.map((item, index) => (
                         <tr key={item.name}>
-                          <td>{index + 2}. {item.name}</td>
+                          <td>{(selectedPackage ? 1 : 0) + selectedSingleItems.length + index + 1}. {item.name}</td>
                           <td>{item.detail}</td>
                           <td>{amount(item.amount)}</td>
                           <td>{amount(item.amount)}</td>
@@ -989,7 +989,7 @@ export default function QuoteBuilder() {
                       ))}
                       {visibleCustomItems.map((item, index) => (
                         <tr key={item.id}>
-                          <td>{optionItems.length + index + 2}. {item.name || "기타 항목"}</td>
+                          <td>{(selectedPackage ? 1 : 0) + selectedSingleItems.length + optionItems.length + index + 1}. {item.name || "기타 항목"}</td>
                           <td></td>
                           <td>{amount(item.amount)}</td>
                           <td>{amount(item.amount)}</td>
@@ -1003,7 +1003,7 @@ export default function QuoteBuilder() {
                       ) : null}
                       {visibleBenefitItems.map((item, index) => (
                         <tr key={item.id}>
-                          <td>{optionItems.length + visibleCustomItems.length + index + 2}. {item.name}</td>
+                          <td>{(selectedPackage ? 1 : 0) + selectedSingleItems.length + optionItems.length + visibleCustomItems.length + index + 1}. {item.name}</td>
                           <td></td>
                           <td>-</td>
                           <td>-</td>
