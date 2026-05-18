@@ -345,6 +345,10 @@ export default function JakeImageQuoteBuilder() {
 
       const company = customer.companyName.trim() || "고객";
       const fileName = `${company}_제이크이미지연구소_견적서_${customer.quoteDate}.pdf`;
+      // 브라우저/모바일 환경에 따라 새 창의 iframe 또는 blob 다운로드 링크가 막히는 경우가 있어
+      // 실제 파일 저장은 jsPDF의 save()로 먼저 실행합니다.
+      pdf.save(fileName);
+
       const pdfBlob = pdf.output("blob");
       const pdfUrl = URL.createObjectURL(pdfBlob);
 
