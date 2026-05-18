@@ -498,7 +498,7 @@ export default function QuoteBuilder() {
       await new Promise((resolve) => window.requestAnimationFrame(resolve));
 
       const canvas = await html2canvas(captureTarget, {
-        scale: 2,
+        scale: 1.25,
         backgroundColor: "#ffffff",
         useCORS: true,
         allowTaint: false,
@@ -511,81 +511,19 @@ export default function QuoteBuilder() {
         scrollY: 0
       });
 
-      const image = canvas.toDataURL("image/png");
+      const image = canvas.toDataURL("image/jpeg", 0.92);
       const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4", compress: true });
-      pdf.addImage(image, "PNG", 0, 0, 297, 210);
+      pdf.addImage(image, "JPEG", 0, 0, 297, 210);
 
       const hospital = customer.hospitalName.trim() || "고객";
       const fileName = `${hospital}_포토클리닉_견적서_${customer.quoteDate}.pdf`;
-      // 브라우저/모바일 환경에 따라 새 창의 iframe 또는 blob 다운로드 링크가 막히는 경우가 있어
-      // 실제 파일 저장은 jsPDF의 save()로 먼저 실행합니다.
+      // 속도 우선: PDF 파일을 바로 저장하고, 새 창/iframe 렌더링은 생략합니다.
+      // 기존 새 창 미리보기 방식은 모바일과 일부 브라우저에서 느리거나 멈출 수 있습니다.
       pdf.save(fileName);
 
-      const pdfBlob = pdf.output("blob");
-      const pdfUrl = URL.createObjectURL(pdfBlob);
-
       if (pdfWindow) {
-        const safeFileName = escapeHtml(fileName);
-        const safePdfUrl = escapeHtml(pdfUrl);
-
-        pdfWindow.document.open();
-        pdfWindow.document.write(`
-          <!doctype html>
-          <html lang="ko">
-            <head>
-              <title>${safeFileName}</title>
-              <meta name="viewport" content="width=device-width, initial-scale=1" />
-              <style>
-                html, body {
-                  width: 100%;
-                  height: 100%;
-                  margin: 0;
-                  background: #2b2b2b;
-                  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
-                }
-                .toolbar {
-                  height: 48px;
-                  display: flex;
-                  align-items: center;
-                  justify-content: space-between;
-                  gap: 12px;
-                  padding: 0 14px;
-                  background: #155855;
-                  color: #fff;
-                  box-sizing: border-box;
-                  font-size: 13px;
-                }
-                .toolbar a {
-                  color: #fff;
-                  text-decoration: none;
-                  border: 1px solid rgba(255,255,255,0.45);
-                  border-radius: 999px;
-                  padding: 7px 12px;
-                  white-space: nowrap;
-                }
-                iframe {
-                  width: 100%;
-                  height: calc(100% - 48px);
-                  border: 0;
-                  background: #fff;
-                }
-              </style>
-            </head>
-            <body>
-              <div class="toolbar">
-                <span>${safeFileName}</span>
-                <a href="${safePdfUrl}" download="${safeFileName}">다운로드</a>
-              </div>
-              <iframe src="${safePdfUrl}" title="포토클리닉 견적서 PDF"></iframe>
-            </body>
-          </html>
-        `);
-        pdfWindow.document.close();
-      } else {
-        pdf.save(fileName);
+        pdfWindow.close();
       }
-
-      window.setTimeout(() => URL.revokeObjectURL(pdfUrl), 120000);
     } catch (error) {
       const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
       console.error("PDF generation failed", error);
