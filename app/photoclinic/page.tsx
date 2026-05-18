@@ -515,7 +515,7 @@ export default function QuoteBuilder() {
       const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4", compress: true });
       pdf.addImage(image, "JPEG", 0, 0, 297, 210);
 
-      const hospital = customer.hospitalName.trim() || "고객";
+      const hospital = customer.hospitalName.trim() || "포토클리닉";
       const fileName = `${hospital}_포토클리닉_견적서_${customer.quoteDate}.pdf`;
       // 속도 우선: PDF 파일을 바로 저장하고, 새 창/iframe 렌더링은 생략합니다.
       // 기존 새 창 미리보기 방식은 모바일과 일부 브라우저에서 느리거나 멈출 수 있습니다.
@@ -555,7 +555,7 @@ export default function QuoteBuilder() {
                 <input
                   value={quoteTitle}
                   onChange={(event) => setQuoteTitle(event.target.value)}
-                  placeholder="오블리브의원 브랜드사진 견적서"
+                  placeholder="포토클리닉 브랜드사진 견적서"
                 />
               </Field>
             </div>
