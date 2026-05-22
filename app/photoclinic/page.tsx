@@ -176,6 +176,7 @@ export default function QuoteBuilder() {
   const [customItems, setCustomItems] = useState<CustomItem[]>([]);
   const [benefitItems, setBenefitItems] = useState<BenefitItem[]>([]);
   const [discountRate, setDiscountRate] = useState(0);
+  const [extraDiscount, setExtraDiscount] = useState(0);
   const [memo, setMemo] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [basePreviewScale, setBasePreviewScale] = useState(0.48);
@@ -296,7 +297,9 @@ export default function QuoteBuilder() {
   const rawSupplyAmount = Math.max(contentSubtotal - discountTotal, 0);
   const supplyAmount = Math.floor(rawSupplyAmount / 10000) * 10000;
   const vat = Math.round(supplyAmount * 0.1);
-  const finalAmount = supplyAmount + vat;
+  const preExtraDiscountAmount = supplyAmount + vat;
+  const effectiveExtraDiscount = Math.min(Math.max(extraDiscount, 0), preExtraDiscountAmount);
+  const finalAmount = Math.max(preExtraDiscountAmount - effectiveExtraDiscount, 0);
 
   const updateCustomer = (key: keyof CustomerInfo, value: string) => {
     setCustomer((prev) => ({ ...prev, [key]: value }));
@@ -358,6 +361,7 @@ export default function QuoteBuilder() {
     setCustomItems([]);
     setBenefitItems([]);
     setDiscountRate(0);
+    setExtraDiscount(0);
     setMemo("");
   };
 
@@ -829,6 +833,24 @@ export default function QuoteBuilder() {
             </div>
           </Panel>
 
+          <Panel title="추가할인(절삭)">
+            <div className="grid gap-3">
+              <Field label="추가할인 금액">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9,]*"
+                  value={extraDiscount > 0 ? amount(extraDiscount) : ""}
+                  onChange={(event) => setExtraDiscount(numberValue(event.target.value))}
+                  placeholder="예: 40,000"
+                />
+              </Field>
+              <p className="empty-text">
+                최종 견적금액에서 직접 차감됩니다. 예: 3,240,000원 → 3,200,000원으로 맞출 때 40,000 입력
+              </p>
+            </div>
+          </Panel>
+
           <Panel title="메모">
             <textarea
               value={memo}
@@ -1019,6 +1041,15 @@ export default function QuoteBuilder() {
                           <td>촬영콘텐츠 합계 기준</td>
                         </tr>
                       ) : null}
+                      {effectiveExtraDiscount > 0 ? (
+                        <tr className="discount-row">
+                          <td>추가할인(절삭)</td>
+                          <td>-</td>
+                          <td>-{amount(effectiveExtraDiscount)}</td>
+                          <td>-{amount(effectiveExtraDiscount)}</td>
+                          <td>최종금액 조정</td>
+                        </tr>
+                      ) : null}
                       {contentSubtotal === 0 ? (
                         <tr>
                           <td>선택된 촬영 항목 없음</td>
@@ -1059,6 +1090,10 @@ export default function QuoteBuilder() {
                       <div>
                         <span>부가세/10%</span>
                         <strong>{amount(vat)}</strong>
+                      </div>
+                      <div>
+                        <span>추가할인</span>
+                        <strong>{effectiveExtraDiscount ? `-${amount(effectiveExtraDiscount)}` : "0"}</strong>
                       </div>
                       <div className="grand-total">
                         <span>KRW</span>
