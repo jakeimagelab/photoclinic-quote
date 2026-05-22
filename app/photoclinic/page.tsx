@@ -293,17 +293,13 @@ export default function QuoteBuilder() {
   const visibleCustomItems = customItems.filter((item) => item.name || item.amount > 0);
   const visibleBenefitItems = benefitItems.filter((item) => item.name);
   const contentSubtotal = packageTotal + singleItemsTotal + optionsTotal + customTotal;
-  const discountTotal = Math.round(contentSubtotal * (discountRate / 100));
+  const rateDiscountAmount = Math.round(contentSubtotal * (discountRate / 100));
+  const extraDiscountAmount = Math.min(Math.max(Number(extraDiscount) || 0, 0), Math.max(contentSubtotal - rateDiscountAmount, 0));
+  const discountTotal = rateDiscountAmount + extraDiscountAmount;
   const rawSupplyAmount = Math.max(contentSubtotal - discountTotal, 0);
   const supplyAmount = Math.floor(rawSupplyAmount / 10000) * 10000;
   const vat = Math.round(supplyAmount * 0.1);
-
-  // 추가할인은 부가세 계산까지 끝난 금액에서 입력한 원 단위 그대로 차감합니다.
-  // 예: 3,240,000 - 40,000 = 3,200,000
-  const beforeExtraDiscountTotal = supplyAmount + vat;
-  const extraDiscountAmount = Math.min(Math.max(Number(extraDiscount) || 0, 0), beforeExtraDiscountTotal);
-  const finalQuoteAmount = Math.max(beforeExtraDiscountTotal - extraDiscountAmount, 0);
-  const finalAmount = finalQuoteAmount;
+  const finalAmount = supplyAmount + vat;
 
   const updateCustomer = (key: keyof CustomerInfo, value: string) => {
     setCustomer((prev) => ({ ...prev, [key]: value }));
@@ -1040,8 +1036,8 @@ export default function QuoteBuilder() {
                         <tr className="discount-row">
                           <td>{discountRate}% 할인</td>
                           <td>-</td>
-                          <td>-{amount(discountTotal)}</td>
-                          <td>-{amount(discountTotal)}</td>
+                          <td>-{amount(rateDiscountAmount)}</td>
+                          <td>-{amount(rateDiscountAmount)}</td>
                           <td>촬영콘텐츠 합계 기준</td>
                         </tr>
                       ) : null}
@@ -1094,10 +1090,6 @@ export default function QuoteBuilder() {
                       <div>
                         <span>부가세/10%</span>
                         <strong>{amount(vat)}</strong>
-                      </div>
-                      <div>
-                        <span>추가할인</span>
-                        <strong>{extraDiscountAmount ? `-${amount(extraDiscountAmount)}` : "0"}</strong>
                       </div>
                       <div className="grand-total">
                         <span>KRW</span>
