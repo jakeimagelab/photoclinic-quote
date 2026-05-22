@@ -160,16 +160,12 @@ export default function JakeImageQuoteBuilder() {
     0
   );
   const visibleDiscountItems = discountItems.filter((item) => item.name.trim() || item.amount > 0);
-  const discountTotal = discountItems.reduce((sum, item) => sum + Math.max(0, item.amount), 0);
+  const baseDiscountTotal = discountItems.reduce((sum, item) => sum + Math.max(0, item.amount), 0);
+  const extraDiscountAmount = Math.min(Math.max(Number(extraDiscount) || 0, 0), Math.max(itemSubtotal - baseDiscountTotal, 0));
+  const discountTotal = baseDiscountTotal + extraDiscountAmount;
   const supplyAmount = Math.max(itemSubtotal - discountTotal, 0);
   const vat = Math.round(supplyAmount * 0.1);
-
-  // 추가할인은 부가세 계산까지 끝난 금액에서 입력한 원 단위 그대로 차감합니다.
-  // 예: 3,240,000 - 40,000 = 3,200,000
-  const beforeExtraDiscountTotal = supplyAmount + vat;
-  const extraDiscountAmount = Math.min(Math.max(Number(extraDiscount) || 0, 0), beforeExtraDiscountTotal);
-  const finalQuoteAmount = Math.max(beforeExtraDiscountTotal - extraDiscountAmount, 0);
-  const finalAmount = finalQuoteAmount;
+  const finalAmount = supplyAmount + vat;
 
   const updateCustomer = (key: keyof CustomerInfo, value: string) => {
     setCustomer((prev) => ({ ...prev, [key]: value }));
@@ -757,10 +753,6 @@ export default function JakeImageQuoteBuilder() {
                         <div>
                           <span>부가세/10%</span>
                           <strong>{amount(vat)}</strong>
-                        </div>
-                        <div>
-                          <span>추가할인</span>
-                          <strong>{extraDiscountAmount ? `-${amount(extraDiscountAmount)}` : "0"}</strong>
                         </div>
                         <div className="grand-total">
                           <span>KRW</span>
