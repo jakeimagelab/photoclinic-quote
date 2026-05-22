@@ -117,6 +117,7 @@ export default function JakeImageQuoteBuilder() {
     }
   ]);
   const [discountItems, setDiscountItems] = useState<DiscountItem[]>([]);
+  const [extraDiscount, setExtraDiscount] = useState(0);
   const [memo, setMemo] = useState("촬영 범위와 일정은 상담 후 최종 확정됩니다.");
   const [isGenerating, setIsGenerating] = useState(false);
   const [basePreviewScale, setBasePreviewScale] = useState(0.48);
@@ -162,7 +163,9 @@ export default function JakeImageQuoteBuilder() {
   const discountTotal = discountItems.reduce((sum, item) => sum + Math.max(0, item.amount), 0);
   const supplyAmount = Math.max(itemSubtotal - discountTotal, 0);
   const vat = Math.round(supplyAmount * 0.1);
-  const finalAmount = supplyAmount + vat;
+  const preExtraDiscountAmount = supplyAmount + vat;
+  const effectiveExtraDiscount = Math.min(Math.max(extraDiscount, 0), preExtraDiscountAmount);
+  const finalAmount = Math.max(preExtraDiscountAmount - effectiveExtraDiscount, 0);
 
   const updateCustomer = (key: keyof CustomerInfo, value: string) => {
     setCustomer((prev) => ({ ...prev, [key]: value }));
@@ -203,6 +206,7 @@ export default function JakeImageQuoteBuilder() {
       }
     ]);
     setDiscountItems([]);
+    setExtraDiscount(0);
     setMemo("촬영 범위와 일정은 상담 후 최종 확정됩니다.");
   };
 
@@ -554,6 +558,24 @@ export default function JakeImageQuoteBuilder() {
             )}
           </Panel>
 
+          <Panel title="추가할인(절삭)">
+            <div className="grid gap-3">
+              <Field label="추가할인 금액">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9,]*"
+                  value={extraDiscount > 0 ? amount(extraDiscount) : ""}
+                  onChange={(event) => setExtraDiscount(numberValue(event.target.value))}
+                  placeholder="예: 40,000"
+                />
+              </Field>
+              <p className="empty-text">
+                최종 견적금액에서 직접 차감됩니다. 예: 3,240,000원 → 3,200,000원으로 맞출 때 40,000 입력
+              </p>
+            </div>
+          </Panel>
+
           <Panel title="메모">
             <textarea
               value={memo}
@@ -731,6 +753,10 @@ export default function JakeImageQuoteBuilder() {
                         <div>
                           <span>부가세/10%</span>
                           <strong>{amount(vat)}</strong>
+                        </div>
+                        <div>
+                          <span>추가할인</span>
+                          <strong>{effectiveExtraDiscount ? `-${amount(effectiveExtraDiscount)}` : "0"}</strong>
                         </div>
                         <div className="grand-total">
                           <span>KRW</span>
