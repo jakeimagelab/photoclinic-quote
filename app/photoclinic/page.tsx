@@ -297,9 +297,13 @@ export default function QuoteBuilder() {
   const rawSupplyAmount = Math.max(contentSubtotal - discountTotal, 0);
   const supplyAmount = Math.floor(rawSupplyAmount / 10000) * 10000;
   const vat = Math.round(supplyAmount * 0.1);
-  const preExtraDiscountAmount = supplyAmount + vat;
-  const effectiveExtraDiscount = Math.min(Math.max(extraDiscount, 0), preExtraDiscountAmount);
-  const finalAmount = Math.max(preExtraDiscountAmount - effectiveExtraDiscount, 0);
+
+  // 추가할인은 부가세 계산까지 끝난 금액에서 입력한 원 단위 그대로 차감합니다.
+  // 예: 3,240,000 - 40,000 = 3,200,000
+  const beforeExtraDiscountTotal = supplyAmount + vat;
+  const extraDiscountAmount = Math.min(Math.max(Number(extraDiscount) || 0, 0), beforeExtraDiscountTotal);
+  const finalQuoteAmount = Math.max(beforeExtraDiscountTotal - extraDiscountAmount, 0);
+  const finalAmount = finalQuoteAmount;
 
   const updateCustomer = (key: keyof CustomerInfo, value: string) => {
     setCustomer((prev) => ({ ...prev, [key]: value }));
@@ -1041,12 +1045,12 @@ export default function QuoteBuilder() {
                           <td>촬영콘텐츠 합계 기준</td>
                         </tr>
                       ) : null}
-                      {effectiveExtraDiscount > 0 ? (
+                      {extraDiscountAmount > 0 ? (
                         <tr className="discount-row">
                           <td>추가할인(절삭)</td>
                           <td>-</td>
-                          <td>-{amount(effectiveExtraDiscount)}</td>
-                          <td>-{amount(effectiveExtraDiscount)}</td>
+                          <td>-{amount(extraDiscountAmount)}</td>
+                          <td>-{amount(extraDiscountAmount)}</td>
                           <td>최종금액 조정</td>
                         </tr>
                       ) : null}
@@ -1093,7 +1097,7 @@ export default function QuoteBuilder() {
                       </div>
                       <div>
                         <span>추가할인</span>
-                        <strong>{effectiveExtraDiscount ? `-${amount(effectiveExtraDiscount)}` : "0"}</strong>
+                        <strong>{extraDiscountAmount ? `-${amount(extraDiscountAmount)}` : "0"}</strong>
                       </div>
                       <div className="grand-total">
                         <span>KRW</span>
