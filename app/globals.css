@@ -1644,3 +1644,34 @@ section, aside, .preview-shell {
     padding: 13px;
   }
 }
+
+
+/* Latest quote editor refinements */
+.custom-item-editor {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #ded7cc;
+  border-radius: 10px;
+  background: #fffdfa;
+  padding: 10px;
+}
+
+.custom-item-editor .item-row {
+  align-items: start;
+}
+
+.custom-item-editor textarea {
+  min-height: 64px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .custom-item-editor .item-row {
+    grid-template-columns: 1fr;
+  }
+
+  .custom-item-editor .icon-button {
+    width: 100%;
+  }
+}
