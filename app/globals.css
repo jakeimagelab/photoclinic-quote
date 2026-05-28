@@ -1675,3 +1675,17 @@ section, aside, .preview-shell {
     width: 100%;
   }
 }
+
+
+/* Preview follow behavior */
+.quote-preview-follow-panel {
+  will-change: transform;
+  transition: transform 90ms linear;
+  z-index: 5;
+}
+
+@media (max-width: 1023px) {
+  .quote-preview-follow-panel {
+    transform: none !important;
+  }
+}
