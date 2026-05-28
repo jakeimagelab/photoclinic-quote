@@ -596,7 +596,7 @@ export default function JakeImageQuoteBuilder() {
           </div>
         </div>
 
-        <aside className="min-w-0 space-y-4 lg:sticky lg:top-6 lg:self-start">
+        <aside className="min-w-0 space-y-4 lg:sticky lg:top-6 lg:self-start lg:max-h-[calc(100vh-48px)] lg:overflow-y-auto lg:pr-1">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#4f6f93]">
