@@ -29,6 +29,7 @@ type SingleItem = {
 type CustomItem = {
   id: string;
   name: string;
+  detail: string;
   amount: number;
 };
 
@@ -173,6 +174,7 @@ export default function QuoteBuilder() {
   const [stagedCount, setStagedCount] = useState(0);
   const [floorCount, setFloorCount] = useState(0);
   const [largeHospital, setLargeHospital] = useState(false);
+  const [droneCount, setDroneCount] = useState(0);
   const [customItems, setCustomItems] = useState<CustomItem[]>([]);
   const [benefitItems, setBenefitItems] = useState<BenefitItem[]>([]);
   const [discountRate, setDiscountRate] = useState(0);
@@ -280,17 +282,23 @@ export default function QuoteBuilder() {
         detail: "적용",
         amount: 750000,
         visible: largeHospital
+      },
+      {
+        name: "드론촬영",
+        detail: `${droneCount}회`,
+        amount: droneCount * 500000,
+        visible: droneCount > 0
       }
     ];
 
     return items.filter((item) => item.visible);
-  }, [floorCount, largeHospital, profileCount, stagedCount]);
+  }, [droneCount, floorCount, largeHospital, profileCount, stagedCount]);
 
   const packageTotal = selectedPackage?.price ?? 0;
   const singleItemsTotal = selectedSingleItems.reduce((sum, item) => sum + item.price, 0);
   const optionsTotal = optionItems.reduce((sum, item) => sum + item.amount, 0);
   const customTotal = customItems.reduce((sum, item) => sum + item.amount, 0);
-  const visibleCustomItems = customItems.filter((item) => item.name || item.amount > 0);
+  const visibleCustomItems = customItems.filter((item) => item.name || item.detail || item.amount > 0);
   const visibleBenefitItems = benefitItems.filter((item) => item.name);
   const contentSubtotal = packageTotal + singleItemsTotal + optionsTotal + customTotal;
   const rateDiscountAmount = Math.round(contentSubtotal * (discountRate / 100));
@@ -314,7 +322,7 @@ export default function QuoteBuilder() {
   const addCustomItem = () => {
     setCustomItems((items) => [
       ...items,
-      { id: crypto.randomUUID(), name: "", amount: 0 }
+      { id: crypto.randomUUID(), name: "", detail: "", amount: 0 }
     ]);
   };
 
@@ -358,6 +366,7 @@ export default function QuoteBuilder() {
     setStagedCount(0);
     setFloorCount(0);
     setLargeHospital(false);
+    setDroneCount(0);
     setCustomItems([]);
     setBenefitItems([]);
     setDiscountRate(0);
@@ -716,6 +725,13 @@ export default function QuoteBuilder() {
                   className="h-5 w-5 accent-[#155855]"
                 />
               </label>
+              <QuantityField
+                label="드론촬영"
+                unit="회"
+                price="1회당 500,000원"
+                value={droneCount}
+                onChange={setDroneCount}
+              />
               <div className="custom-items-box">
                 <div className="custom-items-head">
                   <div>
@@ -737,37 +753,47 @@ export default function QuoteBuilder() {
                 ) : (
                   <div className="grid gap-3">
                     {customItems.map((item) => (
-                      <div key={item.id} className="item-row">
-                        <input
-                          value={item.name}
+                      <div key={item.id} className="custom-item-editor">
+                        <div className="item-row">
+                          <input
+                            value={item.name}
+                            onChange={(event) =>
+                              updateCustomItem(item.id, "name", event.target.value)
+                            }
+                            placeholder="예: 영상촬영"
+                          />
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9,]*"
+                            value={item.amount > 0 ? amount(item.amount) : ""}
+                            onChange={(event) =>
+                              updateCustomItem(
+                                item.id,
+                                "amount",
+                                numberValue(event.target.value)
+                              )
+                            }
+                            placeholder="금액"
+                          />
+                          <button
+                            type="button"
+                            className="icon-button"
+                            onClick={() => removeCustomItem(item.id)}
+                            aria-label="삭제"
+                            title="삭제"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                        <textarea
+                          value={item.detail}
                           onChange={(event) =>
-                            updateCustomItem(item.id, "name", event.target.value)
+                            updateCustomItem(item.id, "detail", event.target.value)
                           }
-                          placeholder="예: 특수 촬영 구성"
+                          placeholder="서브항목 메모 예: 4K 카메라 2대, 삼각대, 프롬프터 등"
+                          rows={2}
                         />
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9,]*"
-                          value={item.amount > 0 ? amount(item.amount) : ""}
-                          onChange={(event) =>
-                            updateCustomItem(
-                              item.id,
-                              "amount",
-                              numberValue(event.target.value)
-                            )
-                          }
-                          placeholder="금액"
-                        />
-                        <button
-                          type="button"
-                          className="icon-button"
-                          onClick={() => removeCustomItem(item.id)}
-                          aria-label="삭제"
-                          title="삭제"
-                        >
-                          <Trash2 size={16} />
-                        </button>
                       </div>
                     ))}
                   </div>
@@ -872,7 +898,7 @@ export default function QuoteBuilder() {
           </div>
         </div>
 
-        <aside className="min-w-0 lg:sticky lg:top-8 lg:self-start">
+        <aside className="min-w-0 lg:sticky lg:top-6 lg:self-start lg:max-h-[calc(100vh-48px)] lg:overflow-y-auto lg:pr-1">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3 px-1">
             <div>
               <p className="text-sm font-bold text-[#155855]">실시간 견적서 미리보기</p>
@@ -1011,7 +1037,10 @@ export default function QuoteBuilder() {
                       ))}
                       {visibleCustomItems.map((item, index) => (
                         <tr key={item.id}>
-                          <td>{(selectedPackage ? 1 : 0) + selectedSingleItems.length + optionItems.length + index + 1}. {item.name || "기타 항목"}</td>
+                          <td>
+                            {(selectedPackage ? 1 : 0) + selectedSingleItems.length + optionItems.length + index + 1}. {item.name || "기타 항목"}
+                            {item.detail ? <small>- {item.detail}</small> : null}
+                          </td>
                           <td></td>
                           <td>{amount(item.amount)}</td>
                           <td>{amount(item.amount)}</td>
