@@ -387,13 +387,16 @@ export default function QuoteBuilder() {
         subtotal: selectedPkg.price,
         note: "촬영 패키지"
       }] : []),
-      ...items.filter((i: any) => i.visible).map((i: any) => ({
-        name: i.name,
-        detail: i.detail,
-        unitPrice: i.amount,
-        qty: 1,
-        subtotal: i.amount,
-        note: ""
+      // items는 렌더 함수 스코프 → state 변수로 직접 계산
+      ...[
+        { name: "프로필 인원 추가",   detail: `${profileCount}인`,  amount: profileCount * 250000,  visible: profileCount > 0 },
+        { name: "연출 인원 추가",     detail: `${stagedCount}인`,   amount: stagedCount * 450000,   visible: stagedCount > 0 },
+        { name: "인테리어 층수 추가", detail: `${floorCount}층`,    amount: floorCount * 250000,    visible: floorCount > 0 },
+        { name: "병원급 규모 추가",   detail: "적용",               amount: 750000,                 visible: largeHospital },
+        { name: "드론촬영",           detail: `${droneCount}회`,    amount: droneCount * 500000,    visible: droneCount > 0 },
+      ].filter(i => i.visible).map(i => ({
+        name: i.name, detail: i.detail, unitPrice: i.amount,
+        qty: 1, subtotal: i.amount, note: ""
       })),
       ...customItems.filter((i: any) => i.name && i.amount > 0).map((i: any) => ({
         name: i.name,
