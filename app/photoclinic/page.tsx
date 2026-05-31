@@ -67,7 +67,7 @@ type ContractQuoteData = {
   depositAmount: number;
   balanceAmount: number;
   memos: string | null;
-  formState: {
+  formState?: {
     customer: CustomerInfo;
     quoteTitle: string;
     selectedPackageId: string | null;
@@ -527,20 +527,63 @@ export default function QuoteBuilder() {
   };
 
   const loadRecentQuote = (data: ContractQuoteData) => {
-    setCustomer(data.formState.customer);
-    setQuoteTitle(data.formState.quoteTitle);
-    setSelectedPackageId(data.formState.selectedPackageId);
-    setSelectedSingleItemIds(data.formState.selectedSingleItemIds);
-    setProfileCount(data.formState.profileCount);
-    setStagedCount(data.formState.stagedCount);
-    setFloorCount(data.formState.floorCount);
-    setLargeHospital(data.formState.largeHospital);
-    setDroneCount(data.formState.droneCount);
-    setCustomItems(data.formState.customItems);
-    setBenefitItems(data.formState.benefitItems);
-    setDiscountRate(data.formState.discountRate);
-    setExtraDiscount(data.formState.extraDiscount);
-    setMemo(data.formState.memo);
+    if (data.formState) {
+      setCustomer(data.formState.customer);
+      setQuoteTitle(data.formState.quoteTitle);
+      setSelectedPackageId(data.formState.selectedPackageId);
+      setSelectedSingleItemIds(data.formState.selectedSingleItemIds);
+      setProfileCount(data.formState.profileCount);
+      setStagedCount(data.formState.stagedCount);
+      setFloorCount(data.formState.floorCount);
+      setLargeHospital(data.formState.largeHospital);
+      setDroneCount(data.formState.droneCount);
+      setCustomItems(data.formState.customItems);
+      setBenefitItems(data.formState.benefitItems);
+      setDiscountRate(data.formState.discountRate);
+      setExtraDiscount(data.formState.extraDiscount);
+      setMemo(data.formState.memo);
+    } else {
+      setCustomer({
+        hospitalName: data.hospitalName || "",
+        managerName: data.contactName || "",
+        phone: data.phone || "",
+        email: data.email || "",
+        quoteDate: data.quoteDate || todayValue(),
+        validUntil: data.validUntil || addDays(todayValue(), 14),
+        shootDate: data.shootDate || "",
+        quoteNumber: data.quoteNumber || createQuoteNumber()
+      });
+      setQuoteTitle(data.title || "포토클리닉 브랜드사진 견적서");
+      setSelectedPackageId(null);
+      setSelectedSingleItemIds([]);
+      setProfileCount(0);
+      setStagedCount(0);
+      setFloorCount(0);
+      setLargeHospital(false);
+      setDroneCount(0);
+      setCustomItems(
+        data.items
+          .filter((item) => item.subtotal > 0)
+          .map((item) => ({
+            id: crypto.randomUUID(),
+            name: item.name,
+            detail: item.detail,
+            amount: item.subtotal
+          }))
+      );
+      setBenefitItems(
+        data.items
+          .filter((item) => item.subtotal === 0)
+          .map((item) => ({ id: crypto.randomUUID(), name: item.name }))
+      );
+      setDiscountRate(0);
+      setExtraDiscount(data.discountAmount || 0);
+      setMemo(data.memos || "");
+    }
+
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
   };
 
   const openContractWithQuote = (data: ContractQuoteData) => {
@@ -740,7 +783,7 @@ export default function QuoteBuilder() {
 
   return (
     <main className="min-h-screen bg-[#faf7f2] text-[#222222]">
-      <section className="mx-auto grid max-w-[1500px] min-w-0 gap-6 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(440px,0.9fr)_minmax(560px,1.1fr)] lg:py-8">
+      <section className="mx-auto grid max-w-[1500px] min-w-0 gap-6 px-4 py-5 sm:px-6 md:grid-cols-[minmax(340px,0.82fr)_minmax(420px,1.18fr)] lg:grid-cols-[minmax(440px,0.9fr)_minmax(560px,1.1fr)] lg:py-8">
         <div className="min-w-0 space-y-5">
           <header className="rounded-lg border border-[#155855]/15 bg-white px-5 py-5 shadow-sm">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#e85d2c]">
@@ -1079,36 +1122,30 @@ export default function QuoteBuilder() {
             {recentQuotes.length === 0 ? (
               <p className="empty-text">PDF 다운로드 또는 계약서 생성을 누르면 최근 견적이 자동 보관됩니다.</p>
             ) : (
-              <div className="grid gap-3">
+              <div className="recent-quote-list">
                 {recentQuotes.map((item) => (
-                  <div key={item.id} className="rounded-lg border border-[#ddd5c9] bg-[#faf7f2] p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <strong className="block text-sm text-[#155855]">
-                          {item.hospitalName || "병원명 없음"}
-                        </strong>
-                        <span className="mt-1 block text-xs text-[#6f6961]">
-                          {item.quoteNumber} · {displayDate(item.quoteDate)} · {won(item.totalAmount)}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          className="secondary-button"
-                          onClick={() => loadRecentQuote(item)}
-                        >
-                          불러오기
-                        </button>
-                        <button
-                          type="button"
-                          className="primary-button"
-                          onClick={() => openContractWithQuote(item)}
-                          style={{ background: "#E85D2C" }}
-                        >
-                          <FileText size={16} />
-                          계약서
-                        </button>
-                      </div>
+                  <div key={item.id} className="recent-quote-card">
+                    <div className="recent-quote-main">
+                      <strong>{item.hospitalName || "병원명 없음"}</strong>
+                      <span>{item.quoteNumber} · {displayDate(item.quoteDate)}</span>
+                      <b>{won(item.totalAmount)}</b>
+                    </div>
+                    <div className="recent-quote-actions">
+                      <button
+                        type="button"
+                        className="recent-quote-button recent-quote-button-ghost"
+                        onClick={() => loadRecentQuote(item)}
+                      >
+                        불러오기
+                      </button>
+                      <button
+                        type="button"
+                        className="recent-quote-button recent-quote-button-accent"
+                        onClick={() => openContractWithQuote(item)}
+                      >
+                        <FileText size={15} />
+                        계약서
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -1137,7 +1174,7 @@ export default function QuoteBuilder() {
           </div>
         </div>
 
-        <aside className="min-w-0 lg:sticky lg:top-6 lg:self-start lg:max-h-[calc(100vh-48px)] lg:overflow-y-auto lg:pr-1">
+        <aside className="min-w-0 md:sticky md:top-4 md:self-start md:max-h-[calc(100vh-32px)] md:overflow-y-auto md:pr-1 lg:top-6 lg:max-h-[calc(100vh-48px)]">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3 px-1">
             <div>
               <p className="text-sm font-bold text-[#155855]">실시간 견적서 미리보기</p>
