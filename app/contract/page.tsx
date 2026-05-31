@@ -39,6 +39,7 @@ export default function ContractPage() {
   const [toName,     setToName]     = useState("");
   const [mailMsg,    setMailMsg]    = useState("");
   const [error,      setError]      = useState("");
+  const [signatureDataUrl, setSignatureDataUrl] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -56,8 +57,31 @@ export default function ContractPage() {
 
   useEffect(() => {
     if (!quote) return;
-    setContractHtml(buildContractHtml(quote));
-  }, [quote]);
+    setContractHtml(buildContractHtml(quote, signatureDataUrl));
+  }, [quote, signatureDataUrl]);
+
+  useEffect(() => {
+    let alive = true;
+
+    const loadSignature = async () => {
+      try {
+        const res = await fetch("/assets/photoclinic-signature.png");
+        const blob = await res.blob();
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (alive) setSignatureDataUrl(String(reader.result || ""));
+        };
+        reader.readAsDataURL(blob);
+      } catch {
+        if (alive) setSignatureDataUrl("");
+      }
+    };
+
+    void loadSignature();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const updateQuote = (key: keyof QuoteData, value: string) => {
     setQuote((prev) => (prev ? { ...prev, [key]: value } : prev));
@@ -372,7 +396,7 @@ export default function ContractPage() {
 }
 
 // ── 계약서 HTML 생성 (고정 템플릿 + 데이터 채우기) ──────────
-function buildContractHtml(q: QuoteData): string {
+function buildContractHtml(q: QuoteData, signatureDataUrl = ""): string {
   const today = new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
 
   const itemCards = q.items.map((item, i) => `
@@ -469,7 +493,7 @@ function buildContractHtml(q: QuoteData): string {
   .pay-box:first-child .pa{color:#E85D2C;}
   .pay-box .ps{font-size:10px;color:#9BB5B0;margin-top:2px;}
   .effect-box{background:#FFF6F1;border:1px solid #F3C6B1;border-radius:7px;
-              padding:12px 16px;margin:24px 0 16px;font-size:11px;
+              padding:12px 16px;margin:24px 0 16px;font-size:10.6px;
               color:#2C3E3D;line-height:1.9;text-align:center;}
   .sign-area{display:grid;grid-template-columns:1fr 1fr;gap:28px;}
   .sign-box{border:1px solid #C8DDD9;border-radius:9px;padding:16px 18px;}
@@ -482,7 +506,7 @@ function buildContractHtml(q: QuoteData): string {
   .signature-image{display:block;width:128px;height:42px;object-fit:contain;object-position:left center;}
   .stamp{margin-top:12px;height:56px;border:1px dashed #C8DDD9;border-radius:6px;
          display:flex;align-items:center;justify-content:center;font-size:10px;color:#C8DDD9;}
-  .effect-line{white-space:nowrap;}
+  .effect-line{display:block;white-space:nowrap;letter-spacing:-.02em;}
   .footer{margin-top:24px;text-align:center;font-size:10px;color:#9BB5B0;
           padding-top:12px;border-top:1px solid #EEF4F3;}
   @media print{body{padding:16px 24px;} @page{size:A4;margin:1cm;}}
@@ -585,7 +609,7 @@ ${section("제10조", "특약사항", special)}
     <div class="sl"><span class="sk">상호</span><span class="sv">포토클리닉</span></div>
     <div class="sl"><span class="sk">대표자</span><span class="sv">정연호</span></div>
     <div class="sl"><span class="sk">서명일</span><span class="sv">${today}</span></div>
-    <div class="sl"><span class="sk">서명</span><span class="sv"><img class="signature-image" src="/assets/photoclinic-signature.png" alt="정연호 서명"></span></div>
+    <div class="sl"><span class="sk">서명</span><span class="sv">${signatureDataUrl ? `<img class="signature-image" src="${signatureDataUrl}" alt="정연호 서명">` : ""}</span></div>
     <div class="stamp">직인 / 서명</div>
   </div>
 </div>
