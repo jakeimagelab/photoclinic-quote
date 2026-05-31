@@ -28,6 +28,14 @@ const C = {
 
 const fmt = (n: number) => (n || 0).toLocaleString("ko-KR");
 
+const blobToDataUrl = (blob: Blob) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(reader.error || new Error("이미지 변환 실패"));
+    reader.readAsDataURL(blob);
+  });
+
 export default function ContractPage() {
   const previewFrameRef = useRef<HTMLIFrameElement>(null);
   const [quote,      setQuote]      = useState<QuoteData | null>(null);
@@ -66,12 +74,8 @@ export default function ContractPage() {
     const loadSignature = async () => {
       try {
         const res = await fetch("/assets/photoclinic-signature.png");
-        const blob = await res.blob();
-        const reader = new FileReader();
-        reader.onload = () => {
-          if (alive) setSignatureDataUrl(String(reader.result || ""));
-        };
-        reader.readAsDataURL(blob);
+        const dataUrl = await blobToDataUrl(await res.blob());
+        if (alive) setSignatureDataUrl(dataUrl);
       } catch {
         if (alive) setSignatureDataUrl("");
       }
@@ -89,10 +93,27 @@ export default function ContractPage() {
     if (key === "contactName") setToName(value);
   };
 
+  const ensureSignatureLoaded = async () => {
+    if (signatureDataUrl) return signatureDataUrl;
+
+    const res = await fetch("/assets/photoclinic-signature.png");
+    const dataUrl = await blobToDataUrl(await res.blob());
+    setSignatureDataUrl(dataUrl);
+
+    if (quote) {
+      setContractHtml(buildContractHtml(quote, dataUrl));
+    }
+
+    await new Promise((resolve) => window.setTimeout(resolve, 120));
+    return dataUrl;
+  };
+
   const createContractPdf = async () => {
     if (!quote || !previewFrameRef.current?.contentDocument?.body) {
       throw new Error("계약서 미리보기를 불러온 뒤 다시 시도해주세요.");
     }
+
+    await ensureSignatureLoaded();
 
     const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
       import("html2canvas"),
@@ -136,21 +157,23 @@ export default function ContractPage() {
     const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
     const pageWidth = 210;
     const pageHeight = 297;
-    const imgWidth = pageWidth;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    const pageMargin = 7;
+    const maxWidth = pageWidth - pageMargin * 2;
+    const maxHeight = pageHeight - pageMargin * 2;
+    const imageRatio = canvas.width / canvas.height;
+    let imgWidth = maxWidth;
+    let imgHeight = imgWidth / imageRatio;
+
+    if (imgHeight > maxHeight) {
+      imgHeight = maxHeight;
+      imgWidth = imgHeight * imageRatio;
+    }
+
+    const x = (pageWidth - imgWidth) / 2;
+    const y = (pageHeight - imgHeight) / 2;
     const image = canvas.toDataURL("image/png");
 
-    let position = 0;
-    let remainingHeight = imgHeight;
-    pdf.addImage(image, "PNG", 0, position, imgWidth, imgHeight);
-    remainingHeight -= pageHeight;
-
-    while (remainingHeight > 0) {
-      position -= pageHeight;
-      pdf.addPage();
-      pdf.addImage(image, "PNG", 0, position, imgWidth, imgHeight);
-      remainingHeight -= pageHeight;
-    }
+    pdf.addImage(image, "PNG", x, y, imgWidth, imgHeight);
 
     return pdf;
   };
@@ -442,76 +465,76 @@ function buildContractHtml(q: QuoteData, signatureDataUrl = ""): string {
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'Noto Sans KR',sans-serif;color:#1C2B28;background:#fff;
-       padding:38px 48px;font-size:12px;line-height:1.78;max-width:900px;margin:0 auto;}
-  .top-accent{height:7px;background:linear-gradient(90deg,#E85D2C 0 42%,#EB8F22 42% 58%,#155855 58% 100%);
-              border-radius:99px;margin-bottom:24px;}
+       padding:26px 40px;font-size:10.6px;line-height:1.58;max-width:860px;margin:0 auto;}
+  .top-accent{height:6px;background:linear-gradient(90deg,#E85D2C 0 42%,#EB8F22 42% 58%,#155855 58% 100%);
+              border-radius:99px;margin-bottom:18px;}
   .header{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:28px;align-items:start;
-          margin-bottom:24px;padding-bottom:20px;border-bottom:2px solid #155855;}
-  .brand-logo{width:138px;height:auto;display:block;margin-bottom:12px;}
-  .brand-sub{font-size:9.5px;color:#6B8B87;margin-top:3px;line-height:1.55;white-space:nowrap;}
-  .doc-title{font-size:22px;font-weight:700;color:#1C2B28;letter-spacing:.5px;text-align:right;white-space:nowrap;}
-  .doc-meta{font-size:11px;color:#6B8B87;text-align:right;margin-top:8px;line-height:1.7;}
+          margin-bottom:18px;padding-bottom:14px;border-bottom:2px solid #155855;}
+  .brand-logo{width:126px;height:auto;display:block;margin-bottom:8px;}
+  .brand-sub{font-size:8.8px;color:#6B8B87;margin-top:2px;line-height:1.45;white-space:nowrap;}
+  .doc-title{font-size:20px;font-weight:700;color:#1C2B28;letter-spacing:.3px;text-align:right;white-space:nowrap;}
+  .doc-meta{font-size:10px;color:#6B8B87;text-align:right;margin-top:6px;line-height:1.55;}
   .doc-meta strong{color:#E85D2C;}
-  .parties{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px;}
-  .party{border-top:3px solid #155855;padding:12px 0 0;background:#fff;}
+  .parties{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:18px;}
+  .party{border-top:3px solid #155855;padding:9px 0 0;background:#fff;}
   .party.party-client{border-top-color:#E85D2C;}
-  .party h3{font-size:11px;font-weight:700;color:#155855;letter-spacing:.02em;margin-bottom:9px;}
+  .party h3{font-size:10px;font-weight:700;color:#155855;letter-spacing:.02em;margin-bottom:7px;}
   .party.party-client h3{color:#E85D2C;}
-  .party .row{display:grid;grid-template-columns:64px minmax(0,1fr);gap:10px;padding:4px 0;font-size:11.5px;border-bottom:1px solid #EEF4F3;}
+  .party .row{display:grid;grid-template-columns:62px minmax(0,1fr);gap:9px;padding:3px 0;font-size:10.4px;border-bottom:1px solid #EEF4F3;}
   .party .k{color:#6B8B87;}
-  .party .v{font-weight:600;color:#1C2B28;word-break:keep-all;overflow-wrap:break-word;line-height:1.6;}
-  .section{margin-bottom:19px;break-inside:avoid;}
-  .section h3{font-size:12px;font-weight:700;color:#155855;margin-bottom:7px;
-              padding-bottom:5px;border-bottom:1px solid #C8DDD9;
+  .party .v{font-weight:600;color:#1C2B28;word-break:keep-all;overflow-wrap:break-word;line-height:1.45;}
+  .section{margin-bottom:12px;break-inside:avoid;}
+  .section h3{font-size:10.6px;font-weight:700;color:#155855;margin-bottom:5px;
+              padding-bottom:4px;border-bottom:1px solid #C8DDD9;
               display:flex;align-items:center;gap:7px;}
   .art{display:inline-block;background:#155855;color:#fff;font-size:9px;font-weight:700;
        padding:2px 7px;border-radius:10px;flex-shrink:0;}
   .section:nth-of-type(2n) .art{background:#E85D2C;}
-  .clause{border-left:3px solid #155855;padding:4px 0 4px 14px;
-          font-size:11.3px;line-height:1.86;color:#2C3E3D;white-space:pre-line;
+  .clause{border-left:3px solid #155855;padding:2px 0 2px 11px;
+          font-size:9.9px;line-height:1.58;color:#2C3E3D;white-space:pre-line;
           word-break:keep-all;overflow-wrap:break-word;}
-  .quote-list{display:grid;gap:8px;margin-bottom:12px;}
+  .quote-list{display:grid;gap:3px;margin-bottom:8px;}
   .quote-item{display:grid;grid-template-columns:36px minmax(0,1fr) 132px;gap:12px;align-items:start;
-              padding:11px 0;border-bottom:1px solid #E4F0EE;}
+              padding:6px 0;border-bottom:1px solid #E4F0EE;}
   .item-index{font-size:10px;font-weight:700;color:#E85D2C;}
-  .item-main strong{display:block;font-size:12.5px;color:#1C2B28;margin-bottom:2px;word-break:keep-all;overflow-wrap:break-word;}
-  .item-main span{display:block;font-size:10.5px;color:#6B8B87;line-height:1.55;word-break:keep-all;overflow-wrap:break-word;}
+  .item-main strong{display:block;font-size:10.6px;color:#1C2B28;margin-bottom:1px;word-break:keep-all;overflow-wrap:break-word;}
+  .item-main span{display:block;font-size:9.2px;color:#6B8B87;line-height:1.35;word-break:keep-all;overflow-wrap:break-word;}
   .item-main em{display:inline-block;margin-top:4px;font-style:normal;font-size:9px;color:#fff;
                 background:#155855;border-radius:99px;padding:1px 7px;}
   .item-amount{text-align:right;}
   .item-amount small{display:block;font-size:9px;color:#9BB5B0;margin-bottom:2px;}
-  .item-amount b{font-size:12.5px;color:#155855;}
+  .item-amount b{font-size:10.8px;color:#155855;}
   .amount-panel{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:18px;align-items:end;
-                border-top:2px solid #155855;padding-top:12px;}
-  .amount-note{font-size:10px;color:#6B8B87;line-height:1.7;word-break:keep-all;}
-  .amt-row{display:flex;justify-content:space-between;padding:4px 0;font-size:11px;
+                border-top:2px solid #155855;padding-top:8px;}
+  .amount-note{font-size:9px;color:#6B8B87;line-height:1.45;word-break:keep-all;}
+  .amt-row{display:flex;justify-content:space-between;padding:2px 0;font-size:9.8px;
            border-bottom:.5px solid #EEF4F3;}
   .amt-row .l{color:#6B8B87;}
-  .amt-total{display:flex;justify-content:space-between;padding:8px 0;font-size:14px;
+  .amt-total{display:flex;justify-content:space-between;padding:5px 0;font-size:12px;
              font-weight:700;color:#155855;border-top:2px solid #E85D2C;margin-top:2px;}
-  .pay-boxes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
-  .pay-box{border:1px solid #C8DDD9;border-radius:7px;padding:12px;text-align:center;background:#FAFCFC;}
+  .pay-boxes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:7px;}
+  .pay-box{border:1px solid #C8DDD9;border-radius:7px;padding:8px;text-align:center;background:#FAFCFC;}
   .pay-box .pt{font-size:10px;color:#9BB5B0;margin-bottom:3px;}
-  .pay-box .pa{font-size:18px;font-weight:700;color:#155855;}
+  .pay-box .pa{font-size:14px;font-weight:700;color:#155855;}
   .pay-box:first-child .pa{color:#E85D2C;}
   .pay-box .ps{font-size:10px;color:#9BB5B0;margin-top:2px;}
   .effect-box{background:#FFF6F1;border:1px solid #F3C6B1;border-radius:7px;
-              padding:12px 16px;margin:24px 0 16px;font-size:10.6px;
-              color:#2C3E3D;line-height:1.9;text-align:center;}
-  .sign-area{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px;align-items:stretch;}
-  .sign-box{min-width:0;border:1px solid #C8DDD9;border-radius:9px;padding:16px 18px;}
+              padding:8px 12px;margin:14px 0 10px;font-size:9.4px;
+              color:#2C3E3D;line-height:1.55;text-align:center;}
+  .sign-area{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;align-items:stretch;}
+  .sign-box{min-width:0;border:1px solid #C8DDD9;border-radius:9px;padding:12px 14px;}
   .sign-box h4{font-size:11px;font-weight:700;color:#6B8B87;margin-bottom:12px;
                padding-bottom:5px;border-bottom:1px solid #EEF4F3;}
-  .sl{display:grid;grid-template-columns:72px minmax(0,1fr);gap:10px;align-items:center;margin-bottom:8px;}
-  .sl .sk{font-size:11px;color:#9BB5B0;}
-  .sl .sv{font-size:12px;font-weight:600;color:#1C2B28;border-bottom:1px solid #C8DDD9;
-          padding-bottom:2px;min-height:22px;min-width:0;}
-  .signature-image{display:block;width:138px;height:42px;object-fit:contain;object-position:left center;}
-  .stamp{margin-top:12px;height:56px;border:1px dashed #C8DDD9;border-radius:6px;
+  .sl{display:grid;grid-template-columns:64px minmax(0,1fr);gap:8px;align-items:center;margin-bottom:6px;}
+  .sl .sk{font-size:9.8px;color:#9BB5B0;}
+  .sl .sv{font-size:10.8px;font-weight:600;color:#1C2B28;border-bottom:1px solid #C8DDD9;
+          padding-bottom:1px;min-height:20px;min-width:0;}
+  .signature-image{display:block;width:124px;height:34px;object-fit:contain;object-position:left center;}
+  .stamp{margin-top:8px;height:42px;border:1px dashed #C8DDD9;border-radius:6px;
          display:flex;align-items:center;justify-content:center;font-size:10px;color:#C8DDD9;}
   .effect-line{display:block;white-space:nowrap;letter-spacing:-.02em;}
-  .footer{margin-top:24px;text-align:center;font-size:10px;color:#9BB5B0;
-          padding-top:12px;border-top:1px solid #EEF4F3;}
+  .footer{margin-top:12px;text-align:center;font-size:9px;color:#9BB5B0;
+          padding-top:8px;border-top:1px solid #EEF4F3;}
   @media print{body{padding:16px 24px;} @page{size:A4;margin:1cm;}}
 </style>
 </head>
