@@ -398,6 +398,8 @@ export default function ContractPage() {
 // ── 계약서 HTML 생성 (고정 템플릿 + 데이터 채우기) ──────────
 function buildContractHtml(q: QuoteData, signatureDataUrl = ""): string {
   const today = new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
+  const baseHref = typeof window !== "undefined" ? window.location.origin : "";
+  const signatureSrc = signatureDataUrl || `${baseHref}/assets/photoclinic-signature.png`;
 
   const itemCards = q.items.map((item, i) => `
     <div class="quote-item">
@@ -434,6 +436,7 @@ function buildContractHtml(q: QuoteData, signatureDataUrl = ""): string {
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<base href="${baseHref}/">
 <title>포토클리닉 브랜드촬영 계약서 · ${q.hospitalName}</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -495,15 +498,15 @@ function buildContractHtml(q: QuoteData, signatureDataUrl = ""): string {
   .effect-box{background:#FFF6F1;border:1px solid #F3C6B1;border-radius:7px;
               padding:12px 16px;margin:24px 0 16px;font-size:10.6px;
               color:#2C3E3D;line-height:1.9;text-align:center;}
-  .sign-area{display:grid;grid-template-columns:1fr 1fr;gap:28px;}
-  .sign-box{border:1px solid #C8DDD9;border-radius:9px;padding:16px 18px;}
+  .sign-area{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px;align-items:stretch;}
+  .sign-box{min-width:0;border:1px solid #C8DDD9;border-radius:9px;padding:16px 18px;}
   .sign-box h4{font-size:11px;font-weight:700;color:#6B8B87;margin-bottom:12px;
                padding-bottom:5px;border-bottom:1px solid #EEF4F3;}
-  .sl{display:flex;gap:7px;align-items:center;margin-bottom:8px;}
-  .sl .sk{font-size:11px;color:#9BB5B0;min-width:44px;}
+  .sl{display:grid;grid-template-columns:72px minmax(0,1fr);gap:10px;align-items:center;margin-bottom:8px;}
+  .sl .sk{font-size:11px;color:#9BB5B0;}
   .sl .sv{font-size:12px;font-weight:600;color:#1C2B28;border-bottom:1px solid #C8DDD9;
-          flex:1;padding-bottom:2px;min-height:18px;}
-  .signature-image{display:block;width:128px;height:42px;object-fit:contain;object-position:left center;}
+          padding-bottom:2px;min-height:22px;min-width:0;}
+  .signature-image{display:block;width:138px;height:42px;object-fit:contain;object-position:left center;}
   .stamp{margin-top:12px;height:56px;border:1px dashed #C8DDD9;border-radius:6px;
          display:flex;align-items:center;justify-content:center;font-size:10px;color:#C8DDD9;}
   .effect-line{display:block;white-space:nowrap;letter-spacing:-.02em;}
@@ -609,7 +612,7 @@ ${section("제10조", "특약사항", special)}
     <div class="sl"><span class="sk">상호</span><span class="sv">포토클리닉</span></div>
     <div class="sl"><span class="sk">대표자</span><span class="sv">정연호</span></div>
     <div class="sl"><span class="sk">서명일</span><span class="sv">${today}</span></div>
-    <div class="sl"><span class="sk">서명</span><span class="sv">${signatureDataUrl ? `<img class="signature-image" src="${signatureDataUrl}" alt="정연호 서명">` : ""}</span></div>
+    <div class="sl"><span class="sk">서명</span><span class="sv"><img class="signature-image" src="${signatureSrc}" alt="정연호 서명"></span></div>
     <div class="stamp">직인 / 서명</div>
   </div>
 </div>
