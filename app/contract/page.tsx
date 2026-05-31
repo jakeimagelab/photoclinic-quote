@@ -1,4 +1,5 @@
 "use client";
+import type { PointerEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 
 interface QuoteData {
@@ -28,16 +29,10 @@ const C = {
 
 const fmt = (n: number) => (n || 0).toLocaleString("ko-KR");
 
-const blobToDataUrl = (blob: Blob) =>
-  new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ""));
-    reader.onerror = () => reject(reader.error || new Error("이미지 변환 실패"));
-    reader.readAsDataURL(blob);
-  });
-
 export default function ContractPage() {
   const previewFrameRef = useRef<HTMLIFrameElement>(null);
+  const signatureCanvasRef = useRef<HTMLCanvasElement>(null);
+  const isSigningRef = useRef(false);
   const [quote,      setQuote]      = useState<QuoteData | null>(null);
   const [contractHtml, setContractHtml] = useState("");
   const [sending,    setSending]    = useState(false);
@@ -68,44 +63,65 @@ export default function ContractPage() {
     setContractHtml(buildContractHtml(quote, signatureDataUrl));
   }, [quote, signatureDataUrl]);
 
-  useEffect(() => {
-    let alive = true;
-
-    const loadSignature = async () => {
-      try {
-        const res = await fetch("/assets/photoclinic-signature.png");
-        const dataUrl = await blobToDataUrl(await res.blob());
-        if (alive) setSignatureDataUrl(dataUrl);
-      } catch {
-        if (alive) setSignatureDataUrl("");
-      }
-    };
-
-    void loadSignature();
-    return () => {
-      alive = false;
-    };
-  }, []);
-
   const updateQuote = (key: keyof QuoteData, value: string) => {
     setQuote((prev) => (prev ? { ...prev, [key]: value } : prev));
     if (key === "email") setToEmail(value);
     if (key === "contactName") setToName(value);
   };
 
-  const ensureSignatureLoaded = async () => {
-    if (signatureDataUrl) return signatureDataUrl;
+  const getSignaturePoint = (event: PointerEvent<HTMLCanvasElement>) => {
+    const canvas = signatureCanvasRef.current;
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
 
-    const res = await fetch("/assets/photoclinic-signature.png");
-    const dataUrl = await blobToDataUrl(await res.blob());
-    setSignatureDataUrl(dataUrl);
+    return {
+      x: ((event.clientX - rect.left) / rect.width) * canvas.width,
+      y: ((event.clientY - rect.top) / rect.height) * canvas.height
+    };
+  };
 
-    if (quote) {
-      setContractHtml(buildContractHtml(quote, dataUrl));
-    }
+  const startSignature = (event: PointerEvent<HTMLCanvasElement>) => {
+    const canvas = signatureCanvasRef.current;
+    const point = getSignaturePoint(event);
+    if (!canvas || !point) return;
 
-    await new Promise((resolve) => window.setTimeout(resolve, 120));
-    return dataUrl;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    isSigningRef.current = true;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.strokeStyle = "#111111";
+    ctx.lineWidth = 4;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    ctx.moveTo(point.x, point.y);
+  };
+
+  const drawSignature = (event: PointerEvent<HTMLCanvasElement>) => {
+    if (!isSigningRef.current) return;
+    const canvas = signatureCanvasRef.current;
+    const point = getSignaturePoint(event);
+    if (!canvas || !point) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.lineTo(point.x, point.y);
+    ctx.stroke();
+  };
+
+  const finishSignature = () => {
+    const canvas = signatureCanvasRef.current;
+    if (!canvas || !isSigningRef.current) return;
+    isSigningRef.current = false;
+    setSignatureDataUrl(canvas.toDataURL("image/png"));
+  };
+
+  const clearSignature = () => {
+    const canvas = signatureCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    ctx?.clearRect(0, 0, canvas.width, canvas.height);
+    setSignatureDataUrl("");
   };
 
   const createContractPdf = async () => {
@@ -113,18 +129,16 @@ export default function ContractPage() {
       throw new Error("계약서 미리보기를 불러온 뒤 다시 시도해주세요.");
     }
 
-    await ensureSignatureLoaded();
-
     const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
       import("html2canvas"),
       import("jspdf")
     ]);
 
     const doc = previewFrameRef.current.contentDocument;
-    const body = doc.body;
-    const html = doc.documentElement;
-    const width = Math.max(body.scrollWidth, html.scrollWidth, body.offsetWidth, html.offsetWidth);
-    const height = Math.max(body.scrollHeight, html.scrollHeight, body.offsetHeight, html.offsetHeight);
+    const pages = Array.from(doc.querySelectorAll<HTMLElement>(".contract-page"));
+    if (!pages.length) {
+      throw new Error("계약서 페이지를 찾을 수 없습니다.");
+    }
 
     if (doc.fonts?.ready) {
       await doc.fonts.ready;
@@ -140,40 +154,26 @@ export default function ContractPage() {
       })
     );
 
-    const canvas = await html2canvas(body, {
-      scale: 2,
-      backgroundColor: "#ffffff",
-      useCORS: true,
-      allowTaint: false,
-      logging: false,
-      width,
-      height,
-      windowWidth: width,
-      windowHeight: height,
-      scrollX: 0,
-      scrollY: 0
-    });
-
     const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
-    const pageWidth = 210;
-    const pageHeight = 297;
-    const pageMargin = 7;
-    const maxWidth = pageWidth - pageMargin * 2;
-    const maxHeight = pageHeight - pageMargin * 2;
-    const imageRatio = canvas.width / canvas.height;
-    let imgWidth = maxWidth;
-    let imgHeight = imgWidth / imageRatio;
+    for (const [index, page] of pages.entries()) {
+      const rect = page.getBoundingClientRect();
+      const canvas = await html2canvas(page, {
+        scale: 2,
+        backgroundColor: "#ffffff",
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+        width: Math.ceil(rect.width),
+        height: Math.ceil(rect.height),
+        windowWidth: Math.ceil(rect.width),
+        windowHeight: Math.ceil(rect.height),
+        scrollX: 0,
+        scrollY: 0
+      });
 
-    if (imgHeight > maxHeight) {
-      imgHeight = maxHeight;
-      imgWidth = imgHeight * imageRatio;
+      if (index > 0) pdf.addPage();
+      pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, 210, 297);
     }
-
-    const x = (pageWidth - imgWidth) / 2;
-    const y = (pageHeight - imgHeight) / 2;
-    const image = canvas.toDataURL("image/png");
-
-    pdf.addImage(image, "PNG", x, y, imgWidth, imgHeight);
 
     return pdf;
   };
@@ -349,6 +349,42 @@ export default function ContractPage() {
             </div>
           </div>
 
+          {/* 포토클리닉 서명 */}
+          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: "16px 18px" }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.teal, marginBottom: 8 }}>✍️ 포토클리닉 서명</div>
+            <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.6, marginBottom: 10 }}>
+              아래 칸에 직접 서명하면 계약서와 PDF에 바로 반영됩니다.
+            </div>
+            <canvas
+              ref={signatureCanvasRef}
+              width={520}
+              height={180}
+              onPointerDown={startSignature}
+              onPointerMove={drawSignature}
+              onPointerUp={finishSignature}
+              onPointerLeave={finishSignature}
+              onPointerCancel={finishSignature}
+              style={{
+                width: "100%",
+                aspectRatio: "520 / 180",
+                border: `1px dashed ${C.border}`,
+                borderRadius: 10,
+                background: "#fff",
+                touchAction: "none",
+                display: "block"
+              }}
+            />
+            <button
+              type="button"
+              onClick={clearSignature}
+              style={{ width: "100%", height: 36, marginTop: 8, border: `1px solid ${C.border}`,
+                       borderRadius: 8, background: C.surface, color: C.muted,
+                       fontSize: 12, fontWeight: 700, fontFamily: "inherit", cursor: "pointer" }}
+            >
+              서명 지우기
+            </button>
+          </div>
+
           {/* PDF 다운로드 */}
           <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: "16px 18px" }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: C.teal, marginBottom: 8 }}>📄 PDF 저장</div>
@@ -422,7 +458,9 @@ export default function ContractPage() {
 function buildContractHtml(q: QuoteData, signatureDataUrl = ""): string {
   const today = new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
   const baseHref = typeof window !== "undefined" ? window.location.origin : "";
-  const signatureSrc = signatureDataUrl || `${baseHref}/assets/photoclinic-signature.png`;
+  const signatureHtml = signatureDataUrl
+    ? `<img class="signature-image" src="${signatureDataUrl}" alt="포토클리닉 서명">`
+    : "";
 
   const itemCards = q.items.map((item, i) => `
     <div class="quote-item">
@@ -464,8 +502,11 @@ function buildContractHtml(q: QuoteData, signatureDataUrl = ""): string {
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'Noto Sans KR',sans-serif;color:#1C2B28;background:#fff;
-       padding:26px 40px;font-size:10.6px;line-height:1.58;max-width:860px;margin:0 auto;}
+  body{font-family:'Noto Sans KR',sans-serif;color:#1C2B28;background:#F3F8F7;
+       padding:18px 0;font-size:10.8px;line-height:1.55;margin:0;}
+  .contract-page{width:794px;height:1123px;margin:0 auto 18px;padding:42px 56px;
+                 background:#fff;overflow:hidden;position:relative;page-break-after:always;}
+  .contract-page:last-child{margin-bottom:0;page-break-after:auto;}
   .top-accent{height:6px;background:linear-gradient(90deg,#E85D2C 0 42%,#EB8F22 42% 58%,#155855 58% 100%);
               border-radius:99px;margin-bottom:18px;}
   .header{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:28px;align-items:start;
@@ -483,7 +524,7 @@ function buildContractHtml(q: QuoteData, signatureDataUrl = ""): string {
   .party .row{display:grid;grid-template-columns:62px minmax(0,1fr);gap:9px;padding:3px 0;font-size:10.4px;border-bottom:1px solid #EEF4F3;}
   .party .k{color:#6B8B87;}
   .party .v{font-weight:600;color:#1C2B28;word-break:keep-all;overflow-wrap:break-word;line-height:1.45;}
-  .section{margin-bottom:12px;break-inside:avoid;}
+  .section{margin-bottom:13px;break-inside:avoid;}
   .section h3{font-size:10.6px;font-weight:700;color:#155855;margin-bottom:5px;
               padding-bottom:4px;border-bottom:1px solid #C8DDD9;
               display:flex;align-items:center;gap:7px;}
@@ -491,7 +532,7 @@ function buildContractHtml(q: QuoteData, signatureDataUrl = ""): string {
        padding:2px 7px;border-radius:10px;flex-shrink:0;}
   .section:nth-of-type(2n) .art{background:#E85D2C;}
   .clause{border-left:3px solid #155855;padding:2px 0 2px 11px;
-          font-size:9.9px;line-height:1.58;color:#2C3E3D;white-space:pre-line;
+          font-size:10px;line-height:1.6;color:#2C3E3D;white-space:pre-line;
           word-break:keep-all;overflow-wrap:break-word;}
   .quote-list{display:grid;gap:3px;margin-bottom:8px;}
   .quote-item{display:grid;grid-template-columns:36px minmax(0,1fr) 132px;gap:12px;align-items:start;
@@ -519,7 +560,7 @@ function buildContractHtml(q: QuoteData, signatureDataUrl = ""): string {
   .pay-box:first-child .pa{color:#E85D2C;}
   .pay-box .ps{font-size:10px;color:#9BB5B0;margin-top:2px;}
   .effect-box{background:#FFF6F1;border:1px solid #F3C6B1;border-radius:7px;
-              padding:8px 12px;margin:14px 0 10px;font-size:9.4px;
+              padding:8px 10px;margin:14px 0 12px;font-size:9.1px;
               color:#2C3E3D;line-height:1.55;text-align:center;}
   .sign-area{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;align-items:stretch;}
   .sign-box{min-width:0;border:1px solid #C8DDD9;border-radius:9px;padding:12px 14px;}
@@ -529,17 +570,22 @@ function buildContractHtml(q: QuoteData, signatureDataUrl = ""): string {
   .sl .sk{font-size:9.8px;color:#9BB5B0;}
   .sl .sv{font-size:10.8px;font-weight:600;color:#1C2B28;border-bottom:1px solid #C8DDD9;
           padding-bottom:1px;min-height:20px;min-width:0;}
-  .signature-image{display:block;width:124px;height:34px;object-fit:contain;object-position:left center;}
+  .signature-image{display:block;width:128px;height:42px;object-fit:contain;object-position:left center;}
   .stamp{margin-top:8px;height:42px;border:1px dashed #C8DDD9;border-radius:6px;
          display:flex;align-items:center;justify-content:center;font-size:10px;color:#C8DDD9;}
   .effect-line{display:block;white-space:nowrap;letter-spacing:-.02em;}
   .footer{margin-top:12px;text-align:center;font-size:9px;color:#9BB5B0;
           padding-top:8px;border-top:1px solid #EEF4F3;}
-  @media print{body{padding:16px 24px;} @page{size:A4;margin:1cm;}}
+  @media print{
+    body{padding:0;background:#fff;}
+    .contract-page{margin:0;box-shadow:none;}
+    @page{size:A4;margin:0;}
+  }
 </style>
 </head>
 <body>
 
+<div class="contract-page">
 <div class="top-accent"></div>
 <div class="header">
   <div>
@@ -590,7 +636,9 @@ ${section("제1조", "계약 목적 및 촬영 범위", scope)}
     </div>
   </div>
 </div>
+</div>
 
+<div class="contract-page">
 <div class="section">
   <h3><span class="art">제3조</span>결제 조건</h3>
   <div class="clause">${payment}</div>
@@ -612,6 +660,9 @@ ${section("제4조", "납품물 및 전달 방식", deliverables)}
 ${section("제5조", "촬영 일정 및 납품 기한", schedule)}
 ${section("제6조", "저작권 및 사용권", copyright)}
 ${section("제7조", "수정 요청", retake)}
+</div>
+
+<div class="contract-page">
 ${section("제8조", "비밀유지 및 결과물 공개", confidential)}
 ${section("제9조", "분쟁 해결", dispute)}
 ${section("제10조", "특약사항", special)}
@@ -635,7 +686,7 @@ ${section("제10조", "특약사항", special)}
     <div class="sl"><span class="sk">상호</span><span class="sv">포토클리닉</span></div>
     <div class="sl"><span class="sk">대표자</span><span class="sv">정연호</span></div>
     <div class="sl"><span class="sk">서명일</span><span class="sv">${today}</span></div>
-    <div class="sl"><span class="sk">서명</span><span class="sv"><img class="signature-image" src="${signatureSrc}" alt="정연호 서명"></span></div>
+    <div class="sl"><span class="sk">서명</span><span class="sv">${signatureHtml}</span></div>
     <div class="stamp">직인 / 서명</div>
   </div>
 </div>
@@ -643,6 +694,7 @@ ${section("제10조", "특약사항", special)}
 <div class="footer">
   PHOTOCLINIC · 제이크이미지연구소 · 병원 전문 브랜드 촬영 · @photoclinic_kr<br>
   본 계약서는 양 당사자가 서명한 시점부터 법적 효력이 발생합니다.
+</div>
 </div>
 </body>
 </html>`;
