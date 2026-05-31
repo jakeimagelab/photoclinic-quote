@@ -76,6 +76,16 @@ export default function ContractPage() {
       await doc.fonts.ready;
     }
 
+    await Promise.all(
+      Array.from(doc.images).map((image) => {
+        if (image.complete) return Promise.resolve();
+        return new Promise<void>((resolve) => {
+          image.onload = () => resolve();
+          image.onerror = () => resolve();
+        });
+      })
+    );
+
     const canvas = await html2canvas(body, {
       scale: 2,
       backgroundColor: "#ffffff",
@@ -321,15 +331,19 @@ export default function ContractPage() {
 function buildContractHtml(q: QuoteData): string {
   const today = new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
 
-  const itemRows = q.items.map((item, i) => `
-    <tr>
-      <td>${i + 1}</td>
-      <td><strong>${item.name}</strong>${item.detail ? `<br><span style="font-size:10px;color:#6B8B87;">${item.detail}</span>` : ""}</td>
-      <td style="text-align:center;">${item.qty}</td>
-      <td style="text-align:right;">${fmt(item.unitPrice)}원</td>
-      <td style="text-align:right;font-weight:700;color:#155855;">${fmt(item.subtotal)}원</td>
-      <td style="color:#9BB5B0;font-size:10px;">${item.note || ""}</td>
-    </tr>`).join("");
+  const itemCards = q.items.map((item, i) => `
+    <div class="quote-item">
+      <div class="item-index">${String(i + 1).padStart(2, "0")}</div>
+      <div class="item-main">
+        <strong>${item.name}</strong>
+        ${item.detail ? `<span>${item.detail}</span>` : ""}
+        ${item.note ? `<em>${item.note}</em>` : ""}
+      </div>
+      <div class="item-amount">
+        <small>수량 ${item.qty}</small>
+        <b>${fmt(item.subtotal)}원</b>
+      </div>
+    </div>`).join("");
 
   const section = (num: string, title: string, content: string) => `
   <div class="section">
@@ -358,46 +372,59 @@ function buildContractHtml(q: QuoteData): string {
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'Noto Sans KR',sans-serif;color:#1C2B28;background:#fff;
-       padding:40px 52px;font-size:12px;line-height:1.8;max-width:900px;margin:0 auto;}
-  .header{display:flex;justify-content:space-between;align-items:flex-start;
-          margin-bottom:28px;padding-bottom:16px;border-bottom:2.5px solid #155855;}
-  .brand{font-size:13px;font-weight:700;color:#155855;letter-spacing:1.5px;}
-  .brand-sub{font-size:10px;color:#9BB5B0;margin-top:3px;}
-  .doc-title{font-size:22px;font-weight:700;color:#1C2B28;letter-spacing:4px;text-align:right;}
-  .doc-meta{font-size:11px;color:#6B8B87;text-align:right;margin-top:4px;line-height:1.6;}
-  .parties{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px;}
-  .party{border:1px solid #C8DDD9;border-radius:8px;padding:13px 15px;background:#FAFCFC;}
-  .party h3{font-size:9px;font-weight:700;color:#9BB5B0;text-transform:uppercase;
-            letter-spacing:.1em;margin-bottom:9px;padding-bottom:5px;border-bottom:1px solid #EEF4F3;}
-  .party .row{display:flex;gap:8px;padding:2.5px 0;font-size:11px;}
-  .party .k{color:#6B8B87;min-width:48px;flex-shrink:0;}
-  .party .v{font-weight:600;color:#1C2B28;}
-  .section{margin-bottom:18px;}
+       padding:38px 48px;font-size:12px;line-height:1.78;max-width:900px;margin:0 auto;}
+  .top-accent{height:7px;background:linear-gradient(90deg,#E85D2C 0 42%,#EB8F22 42% 58%,#155855 58% 100%);
+              border-radius:99px;margin-bottom:24px;}
+  .header{display:grid;grid-template-columns:1fr auto;gap:28px;align-items:start;
+          margin-bottom:24px;padding-bottom:20px;border-bottom:2px solid #155855;}
+  .brand-logo{width:172px;height:auto;display:block;margin-bottom:12px;}
+  .brand-sub{font-size:10.5px;color:#6B8B87;margin-top:3px;}
+  .doc-title{font-size:25px;font-weight:700;color:#1C2B28;letter-spacing:5px;text-align:right;}
+  .doc-meta{font-size:11px;color:#6B8B87;text-align:right;margin-top:8px;line-height:1.7;}
+  .doc-meta strong{color:#E85D2C;}
+  .parties{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px;}
+  .party{border-top:3px solid #155855;padding:12px 0 0;background:#fff;}
+  .party.party-client{border-top-color:#E85D2C;}
+  .party h3{font-size:11px;font-weight:700;color:#155855;letter-spacing:.02em;margin-bottom:9px;}
+  .party.party-client h3{color:#E85D2C;}
+  .party .row{display:grid;grid-template-columns:58px 1fr;gap:10px;padding:4px 0;font-size:11.5px;border-bottom:1px solid #EEF4F3;}
+  .party .k{color:#6B8B87;}
+  .party .v{font-weight:600;color:#1C2B28;word-break:keep-all;overflow-wrap:anywhere;}
+  .section{margin-bottom:19px;break-inside:avoid;}
   .section h3{font-size:12px;font-weight:700;color:#155855;margin-bottom:7px;
               padding-bottom:5px;border-bottom:1px solid #C8DDD9;
               display:flex;align-items:center;gap:7px;}
   .art{display:inline-block;background:#155855;color:#fff;font-size:9px;font-weight:700;
        padding:2px 7px;border-radius:10px;flex-shrink:0;}
-  .clause{background:#F8FAFE;border-left:3px solid #155855;padding:10px 14px;
-          border-radius:0 7px 7px 0;font-size:11px;line-height:1.9;color:#2C3E3D;
-          white-space:pre-line;}
-  table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px;}
-  th{background:#EAF4F2;padding:7px 10px;text-align:left;font-size:10px;
-     font-weight:700;color:#155855;border-bottom:2px solid #C8DDD9;}
-  td{padding:7px 10px;border-bottom:1px solid #EEF4F3;vertical-align:top;}
-  .amt-wrap{display:flex;justify-content:flex-end;margin-top:6px;}
-  .amt-box{min-width:260px;}
+  .section:nth-of-type(2n) .art{background:#E85D2C;}
+  .clause{border-left:3px solid #155855;padding:4px 0 4px 14px;
+          font-size:11.5px;line-height:1.9;color:#2C3E3D;white-space:pre-line;}
+  .quote-list{display:grid;gap:8px;margin-bottom:12px;}
+  .quote-item{display:grid;grid-template-columns:36px 1fr 128px;gap:12px;align-items:start;
+              padding:11px 0;border-bottom:1px solid #E4F0EE;}
+  .item-index{font-size:10px;font-weight:700;color:#E85D2C;}
+  .item-main strong{display:block;font-size:12.5px;color:#1C2B28;margin-bottom:2px;word-break:keep-all;}
+  .item-main span{display:block;font-size:10.5px;color:#6B8B87;line-height:1.55;word-break:keep-all;}
+  .item-main em{display:inline-block;margin-top:4px;font-style:normal;font-size:9px;color:#fff;
+                background:#155855;border-radius:99px;padding:1px 7px;}
+  .item-amount{text-align:right;}
+  .item-amount small{display:block;font-size:9px;color:#9BB5B0;margin-bottom:2px;}
+  .item-amount b{font-size:12.5px;color:#155855;}
+  .amount-panel{display:grid;grid-template-columns:1fr 270px;gap:18px;align-items:end;
+                border-top:2px solid #155855;padding-top:12px;}
+  .amount-note{font-size:10px;color:#6B8B87;line-height:1.7;}
   .amt-row{display:flex;justify-content:space-between;padding:4px 0;font-size:11px;
            border-bottom:.5px solid #EEF4F3;}
   .amt-row .l{color:#6B8B87;}
   .amt-total{display:flex;justify-content:space-between;padding:8px 0;font-size:14px;
-             font-weight:700;color:#155855;border-top:2px solid #155855;margin-top:2px;}
+             font-weight:700;color:#155855;border-top:2px solid #E85D2C;margin-top:2px;}
   .pay-boxes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
   .pay-box{border:1px solid #C8DDD9;border-radius:7px;padding:12px;text-align:center;background:#FAFCFC;}
   .pay-box .pt{font-size:10px;color:#9BB5B0;margin-bottom:3px;}
   .pay-box .pa{font-size:18px;font-weight:700;color:#155855;}
+  .pay-box:first-child .pa{color:#E85D2C;}
   .pay-box .ps{font-size:10px;color:#9BB5B0;margin-top:2px;}
-  .effect-box{background:#EAF4F2;border:1px solid #C8DDD9;border-radius:7px;
+  .effect-box{background:#FFF6F1;border:1px solid #F3C6B1;border-radius:7px;
               padding:12px 16px;margin:24px 0 16px;font-size:11px;
               color:#2C3E3D;line-height:1.9;text-align:center;}
   .sign-area{display:grid;grid-template-columns:1fr 1fr;gap:28px;}
@@ -417,23 +444,24 @@ function buildContractHtml(q: QuoteData): string {
 </head>
 <body>
 
+<div class="top-accent"></div>
 <div class="header">
   <div>
-    <div class="brand">PHOTO CLINIC</div>
+    <img class="brand-logo" src="/assets/photoclinic-logo.png" alt="PHOTO CLINIC">
     <div class="brand-sub">제이크이미지연구소 · 병원 전문 브랜드 촬영</div>
     <div class="brand-sub">사업자번호: 000-00-00000</div>
   </div>
   <div>
     <div class="doc-title">촬 영 계 약 서</div>
     <div class="doc-meta">
-      계약일: ${today}<br>
+      <strong>계약일: ${today}</strong><br>
       견적번호: ${q.quoteNumber || "PC-" + new Date().toISOString().slice(0,10).replace(/-/g,"")}
     </div>
   </div>
 </div>
 
 <div class="parties">
-  <div class="party">
+  <div class="party party-client">
     <h3>발주자 (갑)</h3>
     <div class="row"><span class="k">병원명</span><span class="v">${q.hospitalName || "-"}</span></div>
     <div class="row"><span class="k">담당자</span><span class="v">${q.contactName || "-"}</span></div>
@@ -453,20 +481,11 @@ ${section("제1조", "계약 목적 및 촬영 범위", scope)}
 
 <div class="section">
   <h3><span class="art">제2조</span>촬영 항목 및 계약 금액</h3>
-  <table>
-    <thead>
-      <tr>
-        <th style="width:28px;">No.</th>
-        <th>항목명</th>
-        <th style="width:44px;text-align:center;">수량</th>
-        <th style="width:100px;text-align:right;">단가</th>
-        <th style="width:105px;text-align:right;">소계</th>
-        <th style="width:60px;">비고</th>
-      </tr>
-    </thead>
-    <tbody>${itemRows}</tbody>
-  </table>
-  <div class="amt-wrap">
+  <div class="quote-list">${itemCards}</div>
+  <div class="amount-panel">
+    <p class="amount-note">
+      상기 금액은 견적서 기준으로 산정되며, 촬영 범위 또는 납품 범위가 변경되는 경우 상호 협의에 따라 조정될 수 있습니다.
+    </p>
     <div class="amt-box">
       <div class="amt-row"><span class="l">공급가액</span><span>${fmt(q.supplyAmount)}원</span></div>
       ${q.discountAmount > 0 ? `<div class="amt-row"><span class="l">할인금액</span><span style="color:#E85D2C;">-${fmt(q.discountAmount)}원</span></div>` : ""}
