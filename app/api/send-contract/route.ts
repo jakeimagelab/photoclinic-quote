@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import tls from "node:tls";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
-  const resendKey = process.env.RESEND_API_KEY;
-  if (!resendKey) return NextResponse.json({ ok: false, error: "RESEND_API_KEY 미설정" }, { status: 500 });
+  const gmailUser = process.env.GMAIL_USER;
+  const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
+  if (!gmailUser || !gmailAppPassword) {
+    return NextResponse.json(
+      { ok: false, error: "GMAIL_USER 또는 GMAIL_APP_PASSWORD 미설정" },
+      { status: 500 }
+    );
+  }
 
   const body = await req.json();
   const { to, toName, hospitalName, contractHtml, contractPdfBase64, fileName, message } = body;
@@ -49,36 +57,150 @@ export async function POST(req: NextRequest) {
 </body>
 </html>`;
 
-  const attachment = contractPdfBase64
-    ? {
-        filename: fileName || `포토클리닉_계약서_${hospitalName}.pdf`,
-        content: contractPdfBase64,
-      }
-    : {
-        filename: `포토클리닉_계약서_${hospitalName}.html`,
-        content: Buffer.from(contractHtml, "utf-8").toString("base64"),
-      };
+  const attachment = {
+    filename: contractPdfBase64
+      ? fileName || `포토클리닉_계약서_${hospitalName}.pdf`
+      : `포토클리닉_계약서_${hospitalName}.html`,
+    contentType: contractPdfBase64 ? "application/pdf" : "text/html; charset=UTF-8",
+    content: contractPdfBase64 || Buffer.from(contractHtml, "utf-8").toString("base64"),
+  };
 
-  const resendRes = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${resendKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from:    "포토클리닉 <contract@photoclinic.kr>",
-      to:      [to],
+  try {
+    const smtpId = await sendGmail({
+      user: gmailUser,
+      appPassword: gmailAppPassword,
+      to,
+      fromName: process.env.GMAIL_FROM_NAME || "포토클리닉",
       subject: `[포토클리닉] ${hospitalName} 촬영 계약서`,
-      html:    emailHtml,
-      attachments: [attachment],
-    }),
+      html: emailHtml,
+      attachment,
+    });
+
+    return NextResponse.json({ ok: true, id: smtpId });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ ok: false, error: `메일 발송 실패: ${message}` }, { status: 500 });
+  }
+}
+
+type GmailPayload = {
+  user: string;
+  appPassword: string;
+  to: string;
+  fromName: string;
+  subject: string;
+  html: string;
+  attachment: {
+    filename: string;
+    contentType: string;
+    content: string;
+  };
+};
+
+const encodeHeader = (value: string) =>
+  /[^\x20-\x7E]/.test(value)
+    ? `=?UTF-8?B?${Buffer.from(value, "utf-8").toString("base64")}?=`
+    : value;
+
+const foldBase64 = (value: string) => value.replace(/.{1,76}/g, "$&\r\n").trimEnd();
+
+const readResponse = (socket: tls.TLSSocket) =>
+  new Promise<string>((resolve, reject) => {
+    let output = "";
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error("Gmail SMTP 응답 시간이 초과되었습니다."));
+    }, 15000);
+
+    const cleanup = () => {
+      clearTimeout(timer);
+      socket.off("data", onData);
+      socket.off("error", onError);
+    };
+
+    const onError = (error: Error) => {
+      cleanup();
+      reject(error);
+    };
+
+    const onData = (chunk: Buffer) => {
+      output += chunk.toString("utf-8");
+      const lines = output.trimEnd().split(/\r?\n/);
+      const last = lines[lines.length - 1] || "";
+      if (/^\d{3}\s/.test(last)) {
+        cleanup();
+        resolve(output);
+      }
+    };
+
+    socket.on("data", onData);
+    socket.on("error", onError);
   });
 
-  if (!resendRes.ok) {
-    const err = await resendRes.text();
-    return NextResponse.json({ ok: false, error: `메일 발송 실패: ${err}` }, { status: 500 });
+const sendGmailCommand = async (socket: tls.TLSSocket, command: string, ok: number[]) => {
+  socket.write(`${command}\r\n`);
+  const response = await readResponse(socket);
+  const code = Number(response.slice(0, 3));
+  if (!ok.includes(code)) {
+    throw new Error(response.trim());
   }
+  return response;
+};
 
-  const result = await resendRes.json();
-  return NextResponse.json({ ok: true, id: result.id });
+async function sendGmail(payload: GmailPayload) {
+  const boundary = `photoclinic-${Date.now()}`;
+  const messageId = `<${Date.now()}.${Math.random().toString(36).slice(2)}@photoclinic.local>`;
+  const mime = [
+    `From: ${encodeHeader(payload.fromName)} <${payload.user}>`,
+    `To: <${payload.to}>`,
+    `Subject: ${encodeHeader(payload.subject)}`,
+    `MIME-Version: 1.0`,
+    `Message-ID: ${messageId}`,
+    `Content-Type: multipart/mixed; boundary="${boundary}"`,
+    "",
+    `--${boundary}`,
+    `Content-Type: text/html; charset=UTF-8`,
+    `Content-Transfer-Encoding: base64`,
+    "",
+    foldBase64(Buffer.from(payload.html, "utf-8").toString("base64")),
+    "",
+    `--${boundary}`,
+    `Content-Type: ${payload.attachment.contentType}; name="${encodeHeader(payload.attachment.filename)}"`,
+    `Content-Disposition: attachment; filename="${encodeHeader(payload.attachment.filename)}"`,
+    `Content-Transfer-Encoding: base64`,
+    "",
+    foldBase64(payload.attachment.content),
+    "",
+    `--${boundary}--`,
+    "",
+  ].join("\r\n");
+
+  const socket = tls.connect({
+    host: "smtp.gmail.com",
+    port: 465,
+    servername: "smtp.gmail.com",
+  });
+
+  await new Promise<void>((resolve, reject) => {
+    socket.once("secureConnect", resolve);
+    socket.once("error", reject);
+  });
+
+  try {
+    const greeting = await readResponse(socket);
+    if (!greeting.startsWith("220")) throw new Error(greeting.trim());
+
+    await sendGmailCommand(socket, "EHLO photoclinic.local", [250]);
+    await sendGmailCommand(socket, "AUTH LOGIN", [334]);
+    await sendGmailCommand(socket, Buffer.from(payload.user).toString("base64"), [334]);
+    await sendGmailCommand(socket, Buffer.from(payload.appPassword.replace(/\s/g, "")).toString("base64"), [235]);
+    await sendGmailCommand(socket, `MAIL FROM:<${payload.user}>`, [250]);
+    await sendGmailCommand(socket, `RCPT TO:<${payload.to}>`, [250, 251]);
+    await sendGmailCommand(socket, "DATA", [354]);
+    await sendGmailCommand(socket, `${mime}\r\n.`, [250]);
+    await sendGmailCommand(socket, "QUIT", [221]);
+    return messageId;
+  } finally {
+    socket.end();
+  }
 }
