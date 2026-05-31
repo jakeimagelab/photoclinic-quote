@@ -277,8 +277,8 @@ export default function ContractPage() {
         </div>
       </nav>
 
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "24px 20px", display: "grid",
-                    gridTemplateColumns: "1fr 300px", gap: 20, alignItems: "start" }}>
+      <div style={{ maxWidth: 1240, margin: "0 auto", padding: "24px 20px", display: "grid",
+                    gridTemplateColumns: "minmax(0, 1fr) 300px", gap: 20, alignItems: "start" }}>
 
         {/* 계약서 미리보기 */}
         <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "hidden" }}>
@@ -287,8 +287,8 @@ export default function ContractPage() {
             <div style={{ fontSize: 13, fontWeight: 700, color: C.teal }}>계약서 미리보기</div>
             <div style={{ fontSize: 11, color: C.muted }}>미리보기 내용 그대로 PDF 생성</div>
           </div>
-          <div style={{ padding: 16, background: "#F8FAFA" }}>
-            <iframe ref={previewFrameRef} srcDoc={contractHtml} style={{ width: "100%", height: 700,
+          <div style={{ padding: 16, background: "#F8FAFA", overflowX: "auto" }}>
+            <iframe ref={previewFrameRef} srcDoc={contractHtml} style={{ width: 840, minWidth: 840, height: 860,
                                                      border: `1px solid ${C.border}`,
                                                      borderRadius: 8, background: "#fff" }}
                     title="계약서 미리보기"/>
@@ -574,6 +574,8 @@ function buildContractHtml(q: QuoteData, signatureDataUrl = ""): string {
   .stamp{margin-top:8px;height:42px;border:1px dashed #C8DDD9;border-radius:6px;
          display:flex;align-items:center;justify-content:center;font-size:10px;color:#C8DDD9;}
   .effect-line{display:block;white-space:nowrap;letter-spacing:-.02em;}
+  .final-page{display:flex;flex-direction:column;}
+  .final-spacer{flex:1;min-height:260px;}
   .footer{margin-top:12px;text-align:center;font-size:9px;color:#9BB5B0;
           padding-top:8px;border-top:1px solid #EEF4F3;}
   @media print{
@@ -636,9 +638,6 @@ ${section("제1조", "계약 목적 및 촬영 범위", scope)}
     </div>
   </div>
 </div>
-</div>
-
-<div class="contract-page">
 <div class="section">
   <h3><span class="art">제3조</span>결제 조건</h3>
   <div class="clause">${payment}</div>
@@ -655,17 +654,21 @@ ${section("제1조", "계약 목적 및 촬영 범위", scope)}
     </div>
   </div>
 </div>
+</div>
 
+<div class="contract-page">
 ${section("제4조", "납품물 및 전달 방식", deliverables)}
 ${section("제5조", "촬영 일정 및 납품 기한", schedule)}
 ${section("제6조", "저작권 및 사용권", copyright)}
 ${section("제7조", "수정 요청", retake)}
+${section("제8조", "비밀유지 및 결과물 공개", confidential)}
 </div>
 
-<div class="contract-page">
-${section("제8조", "비밀유지 및 결과물 공개", confidential)}
+<div class="contract-page final-page">
 ${section("제9조", "분쟁 해결", dispute)}
 ${section("제10조", "특약사항", special)}
+
+<div class="final-spacer"></div>
 
 <div class="effect-box">
   <span class="effect-line">위 계약의 성립을 증명하기 위하여 본 계약서를 2부 작성하고, 각 1부씩 보관합니다.</span><br>
