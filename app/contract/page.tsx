@@ -49,12 +49,21 @@ export default function ContractPage() {
       setQuote(data);
       setToEmail(data.email || "");
       setToName(data.contactName || "");
-      const html = buildContractHtml(data);
-      setContractHtml(html);
     } catch (e) {
       setError("견적 데이터를 불러올 수 없습니다.");
     }
   }, []);
+
+  useEffect(() => {
+    if (!quote) return;
+    setContractHtml(buildContractHtml(quote));
+  }, [quote]);
+
+  const updateQuote = (key: keyof QuoteData, value: string) => {
+    setQuote((prev) => (prev ? { ...prev, [key]: value } : prev));
+    if (key === "email") setToEmail(value);
+    if (key === "contactName") setToName(value);
+  };
 
   const createContractPdf = async () => {
     if (!quote || !previewFrameRef.current?.contentDocument?.body) {
@@ -258,6 +267,41 @@ export default function ContractPage() {
             </div>
           </div>
 
+          {/* 계약 병원 정보 */}
+          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: "16px 18px" }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.teal, marginBottom: 10 }}>🏥 계약 병원 정보</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div>
+                <label style={{ fontSize: 10, fontWeight: 700, color: C.muted, display: "block", marginBottom: 3 }}>
+                  병원명
+                </label>
+                <input value={quote.hospitalName} onChange={e => updateQuote("hospitalName", e.target.value)}
+                  placeholder="ABC병원" style={iS}/>
+              </div>
+              <div>
+                <label style={{ fontSize: 10, fontWeight: 700, color: C.muted, display: "block", marginBottom: 3 }}>
+                  대표원장
+                </label>
+                <input value={quote.contactName} onChange={e => updateQuote("contactName", e.target.value)}
+                  placeholder="홍길동" style={iS}/>
+              </div>
+              <div>
+                <label style={{ fontSize: 10, fontWeight: 700, color: C.muted, display: "block", marginBottom: 3 }}>
+                  연락처
+                </label>
+                <input value={quote.phone} onChange={e => updateQuote("phone", e.target.value)}
+                  placeholder="010-0000-0000" style={iS}/>
+              </div>
+              <div>
+                <label style={{ fontSize: 10, fontWeight: 700, color: C.muted, display: "block", marginBottom: 3 }}>
+                  이메일
+                </label>
+                <input value={quote.email} onChange={e => updateQuote("email", e.target.value)}
+                  placeholder="hospital@email.com" style={iS}/>
+              </div>
+            </div>
+          </div>
+
           {/* PDF 다운로드 */}
           <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: "16px 18px" }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: C.teal, marginBottom: 8 }}>📄 PDF 저장</div>
@@ -285,7 +329,7 @@ export default function ContractPage() {
               </div>
               <div>
                 <label style={{ fontSize: 10, fontWeight: 700, color: C.muted, display: "block", marginBottom: 3 }}>
-                  담당자명
+                  대표원장명
                 </label>
                 <input value={toName} onChange={e => setToName(e.target.value)}
                   placeholder="홍길동 원장님" style={iS}/>
@@ -377,7 +421,7 @@ function buildContractHtml(q: QuoteData): string {
   .header{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:28px;align-items:start;
           margin-bottom:24px;padding-bottom:20px;border-bottom:2px solid #155855;}
   .brand-logo{width:138px;height:auto;display:block;margin-bottom:12px;}
-  .brand-sub{font-size:10.5px;color:#6B8B87;margin-top:3px;line-height:1.55;}
+  .brand-sub{font-size:9.5px;color:#6B8B87;margin-top:3px;line-height:1.55;white-space:nowrap;}
   .doc-title{font-size:22px;font-weight:700;color:#1C2B28;letter-spacing:.5px;text-align:right;white-space:nowrap;}
   .doc-meta{font-size:11px;color:#6B8B87;text-align:right;margin-top:8px;line-height:1.7;}
   .doc-meta strong{color:#E85D2C;}
@@ -386,7 +430,7 @@ function buildContractHtml(q: QuoteData): string {
   .party.party-client{border-top-color:#E85D2C;}
   .party h3{font-size:11px;font-weight:700;color:#155855;letter-spacing:.02em;margin-bottom:9px;}
   .party.party-client h3{color:#E85D2C;}
-  .party .row{display:grid;grid-template-columns:58px minmax(0,1fr);gap:10px;padding:4px 0;font-size:11.5px;border-bottom:1px solid #EEF4F3;}
+  .party .row{display:grid;grid-template-columns:64px minmax(0,1fr);gap:10px;padding:4px 0;font-size:11.5px;border-bottom:1px solid #EEF4F3;}
   .party .k{color:#6B8B87;}
   .party .v{font-weight:600;color:#1C2B28;word-break:keep-all;overflow-wrap:break-word;line-height:1.6;}
   .section{margin-bottom:19px;break-inside:avoid;}
@@ -435,8 +479,7 @@ function buildContractHtml(q: QuoteData): string {
   .sl .sk{font-size:11px;color:#9BB5B0;min-width:44px;}
   .sl .sv{font-size:12px;font-weight:600;color:#1C2B28;border-bottom:1px solid #C8DDD9;
           flex:1;padding-bottom:2px;min-height:18px;}
-  .hand-sign{font-family:'Nanum Myeongjo','Apple SD Gothic Neo',serif;font-size:19px;
-             font-weight:800;color:#1C2B28;letter-spacing:.04em;font-style:italic;}
+  .signature-image{display:block;width:128px;height:42px;object-fit:contain;object-position:left center;}
   .stamp{margin-top:12px;height:56px;border:1px dashed #C8DDD9;border-radius:6px;
          display:flex;align-items:center;justify-content:center;font-size:10px;color:#C8DDD9;}
   .effect-line{white-space:nowrap;}
@@ -467,7 +510,7 @@ function buildContractHtml(q: QuoteData): string {
   <div class="party party-client">
     <h3>계약 병원</h3>
     <div class="row"><span class="k">병원명</span><span class="v">${q.hospitalName || "-"}</span></div>
-    <div class="row"><span class="k">담당자</span><span class="v">${q.contactName || "-"}</span></div>
+    <div class="row"><span class="k">대표원장</span><span class="v">${q.contactName || "-"}</span></div>
     <div class="row"><span class="k">연락처</span><span class="v">${q.phone || "-"}</span></div>
     <div class="row"><span class="k">이메일</span><span class="v">${q.email || "-"}</span></div>
   </div>
@@ -532,9 +575,9 @@ ${section("제10조", "특약사항", special)}
   <div class="sign-box">
     <h4>계약 병원</h4>
     <div class="sl"><span class="sk">병원명</span><span class="sv">${q.hospitalName || ""}</span></div>
-    <div class="sl"><span class="sk">담당자</span><span class="sv">${q.contactName || ""}</span></div>
+    <div class="sl"><span class="sk">대표원장</span><span class="sv">${q.contactName || ""}</span></div>
     <div class="sl"><span class="sk">서명일</span><span class="sv"></span></div>
-    <div class="sl"><span class="sk">서명</span><span class="sv hand-sign">정연호</span></div>
+    <div class="sl"><span class="sk">서명</span><span class="sv"></span></div>
     <div class="stamp">직인 / 서명</div>
   </div>
   <div class="sign-box">
@@ -542,7 +585,7 @@ ${section("제10조", "특약사항", special)}
     <div class="sl"><span class="sk">상호</span><span class="sv">포토클리닉</span></div>
     <div class="sl"><span class="sk">대표자</span><span class="sv">정연호</span></div>
     <div class="sl"><span class="sk">서명일</span><span class="sv">${today}</span></div>
-    <div class="sl"><span class="sk">서명</span><span class="sv"></span></div>
+    <div class="sl"><span class="sk">서명</span><span class="sv"><img class="signature-image" src="/assets/photoclinic-signature.png" alt="정연호 서명"></span></div>
     <div class="stamp">직인 / 서명</div>
   </div>
 </div>
