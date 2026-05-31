@@ -213,6 +213,7 @@ const numberValue = (value: string) => {
 const displayDate = (date: string) => date || "-";
 
 const RECENT_QUOTES_KEY = "photoclinic_recent_quotes_v1";
+const RECENT_QUOTES_LIMIT = 5;
 
 const uniqueQuoteItems = (items: string[]) => Array.from(new Set(items.map((item) => item.trim()).filter(Boolean)));
 
@@ -269,6 +270,8 @@ export default function QuoteBuilder() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isImportingQuotePdf, setIsImportingQuotePdf] = useState(false);
   const [pdfImportMessage, setPdfImportMessage] = useState("");
+  const [manualPdfQuote, setManualPdfQuote] = useState<ImportedPdfQuote | null>(null);
+  const [recentQuoteMessage, setRecentQuoteMessage] = useState("");
   const [basePreviewScale, setBasePreviewScale] = useState(0.48);
   const [previewZoom, setPreviewZoom] = useState(1);
   const [recentQuotes, setRecentQuotes] = useState<ContractQuoteData[]>([]);
@@ -281,7 +284,7 @@ export default function QuoteBuilder() {
       if (!saved) return;
       const parsed = JSON.parse(saved) as ContractQuoteData[];
       if (Array.isArray(parsed)) {
-        setRecentQuotes(parsed.slice(0, 3));
+        setRecentQuotes(parsed.slice(0, RECENT_QUOTES_LIMIT));
       }
     } catch {
       setRecentQuotes([]);
@@ -560,7 +563,7 @@ export default function QuoteBuilder() {
   };
 
   const saveRecentQuote = (data: ContractQuoteData) => {
-    const next = [data, ...recentQuotes.filter((item) => item.quoteNumber !== data.quoteNumber)].slice(0, 3);
+    const next = [data, ...recentQuotes.filter((item) => item.quoteNumber !== data.quoteNumber)].slice(0, RECENT_QUOTES_LIMIT);
     setRecentQuotes(next);
     window.localStorage.setItem(RECENT_QUOTES_KEY, JSON.stringify(next));
   };
@@ -620,9 +623,7 @@ export default function QuoteBuilder() {
       setMemo(data.memos || "");
     }
 
-    window.requestAnimationFrame(() => {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    });
+    setRecentQuoteMessage("선택한 견적서를 입력 폼에 불러왔습니다.");
   };
 
   const openContractWithQuote = (data: ContractQuoteData) => {
@@ -693,9 +694,48 @@ export default function QuoteBuilder() {
     };
   };
 
+  const makeManualPdfQuote = (fileName = ""): ImportedPdfQuote => {
+    const dateFromName = fileName.match(/\d{4}-\d{2}-\d{2}/)?.[0] || todayValue();
+
+    return {
+      hospitalName: "",
+      quoteNumber: createQuoteNumber(),
+      quoteDate: dateFromName,
+      totalAmount: 0,
+      rawText: ""
+    };
+  };
+
+  const updateManualPdfQuote = (key: keyof ImportedPdfQuote, value: string) => {
+    setManualPdfQuote((prev) => {
+      const current = prev || makeManualPdfQuote();
+      return {
+        ...current,
+        [key]: key === "totalAmount" ? numberValue(value) : value
+      };
+    });
+  };
+
+  const addManualPdfQuoteToRecent = () => {
+    if (!manualPdfQuote?.totalAmount) {
+      setPdfImportMessage("계약서 생성을 위해 총 견적금액을 입력해주세요.");
+      return;
+    }
+
+    const data = createContractQuoteFromImportedPdf({
+      ...manualPdfQuote,
+      rawText: manualPdfQuote.rawText || "기존 견적서 PDF 수동 입력"
+    });
+
+    saveRecentQuote(data);
+    setPdfImportMessage("입력한 내용으로 최근 견적 목록에 추가했습니다. 목록에서 계약서를 눌러 생성할 수 있습니다.");
+    setManualPdfQuote(null);
+  };
+
   const importQuotePdf = async (file: File) => {
     setIsImportingQuotePdf(true);
     setPdfImportMessage("");
+    setManualPdfQuote(null);
 
     try {
       const pdfjsUrl = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
@@ -742,19 +782,25 @@ export default function QuoteBuilder() {
           await worker.terminate();
           fullText = ocrTexts.join("\n").trim();
         } catch {
-          setPdfImportMessage("이미지형 PDF라 자동 추출이 어렵습니다. OCR 읽기에 실패했습니다.");
+          setManualPdfQuote(makeManualPdfQuote(file.name));
+          setPdfImportMessage("이미지형 PDF라 자동 추출이 어렵습니다. 아래에 병원명과 금액을 입력하면 계약서로 만들 수 있습니다.");
           return;
         }
 
         if (!fullText || fullText.length < 30) {
-          setPdfImportMessage("이미지형 PDF를 OCR로 읽었지만 계약서 생성에 필요한 텍스트를 찾지 못했습니다.");
+          setManualPdfQuote(makeManualPdfQuote(file.name));
+          setPdfImportMessage("이미지형 PDF를 OCR로 읽었지만 필요한 내용을 찾지 못했습니다. 아래에 직접 입력해주세요.");
           return;
         }
       }
 
       const parsed = parseQuotePdfText(fullText);
       if (!parsed.totalAmount) {
-        setPdfImportMessage("PDF 텍스트는 읽었지만 최종 금액을 찾지 못했습니다. 견적서 양식이 다르면 수동 확인이 필요합니다.");
+        setManualPdfQuote({
+          ...parsed,
+          totalAmount: 0
+        });
+        setPdfImportMessage("PDF 텍스트는 읽었지만 최종 금액을 찾지 못했습니다. 아래에서 금액을 입력해주세요.");
         return;
       }
 
@@ -1316,10 +1362,67 @@ export default function QuoteBuilder() {
                   {pdfImportMessage}
                 </div>
               ) : null}
+              {manualPdfQuote ? (
+                <div className="grid gap-3 rounded-xl border border-[#d8d0c4] bg-[#fffdfa] p-4">
+                  <div>
+                    <strong className="block text-sm font-extrabold text-[#155855]">
+                      PDF 내용 직접 입력
+                    </strong>
+                    <span className="mt-1 block text-xs leading-5 text-[#6f6961]">
+                      OCR이 안 되는 기존 견적서는 핵심 정보만 입력해 계약서를 만들 수 있습니다.
+                    </span>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label="병원명">
+                      <input
+                        value={manualPdfQuote.hospitalName}
+                        onChange={(event) => updateManualPdfQuote("hospitalName", event.target.value)}
+                        placeholder="예: 포토클리닉"
+                      />
+                    </Field>
+                    <Field label="견적번호">
+                      <input
+                        value={manualPdfQuote.quoteNumber}
+                        onChange={(event) => updateManualPdfQuote("quoteNumber", event.target.value)}
+                        placeholder="PC-20260531-001"
+                      />
+                    </Field>
+                    <Field label="견적일">
+                      <input
+                        type="date"
+                        value={manualPdfQuote.quoteDate}
+                        onChange={(event) => updateManualPdfQuote("quoteDate", event.target.value)}
+                      />
+                    </Field>
+                    <Field label="총 견적금액">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={manualPdfQuote.totalAmount > 0 ? amount(manualPdfQuote.totalAmount) : ""}
+                        onChange={(event) => updateManualPdfQuote("totalAmount", event.target.value)}
+                        placeholder="예: 5,225,000"
+                      />
+                    </Field>
+                  </div>
+                  <button
+                    type="button"
+                    className="primary-button w-full"
+                    onClick={addManualPdfQuoteToRecent}
+                  >
+                    <FileText size={18} />
+                    입력값으로 계약서 목록에 추가
+                  </button>
+                </div>
+              ) : null}
             </div>
           </Panel>
 
-          <Panel title="최근 생성 견적 3개">
+          <Panel title="최근 생성 견적 5개">
+            {recentQuoteMessage ? (
+              <div className="mb-3 rounded-lg border border-[#c8ddd9] bg-[#eaf4f2] px-4 py-3 text-sm font-bold text-[#155855]">
+                {recentQuoteMessage}
+              </div>
+            ) : null}
             {recentQuotes.length === 0 ? (
               <p className="empty-text">PDF 다운로드 또는 계약서 생성을 누르면 최근 견적이 자동 보관됩니다.</p>
             ) : (
