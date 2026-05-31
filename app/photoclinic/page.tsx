@@ -11,7 +11,7 @@ import {
   WalletCards,
   ZoomIn,
   ZoomOut
-} from "lucide-react";
+, FileText } from "lucide-react";
 
 type PackageOption = {
   id: string;
@@ -372,6 +372,60 @@ export default function QuoteBuilder() {
     setDiscountRate(0);
     setExtraDiscount(0);
     setMemo("");
+  };
+
+
+  // 계약서 생성 페이지로 이동 (견적 데이터 전달)
+  const goToContract = () => {
+    const selectedPkg = packages.find(p => p.id === selectedPackageId);
+    const visibleItems = [
+      ...(selectedPkg && selectedPkg.price > 0 ? [{
+        name: selectedPkg.name + " 패키지",
+        detail: selectedPkg.composition,
+        unitPrice: selectedPkg.price,
+        qty: 1,
+        subtotal: selectedPkg.price,
+        note: "촬영 패키지"
+      }] : []),
+      ...items.filter((i: any) => i.visible).map((i: any) => ({
+        name: i.name,
+        detail: i.detail,
+        unitPrice: i.amount,
+        qty: 1,
+        subtotal: i.amount,
+        note: ""
+      })),
+      ...customItems.filter((i: any) => i.name && i.amount > 0).map((i: any) => ({
+        name: i.name,
+        detail: "",
+        unitPrice: i.amount,
+        qty: 1,
+        subtotal: i.amount,
+        note: "기타"
+      })),
+    ];
+
+    const data = {
+      hospitalName: customer.hospitalName,
+      contactName:  customer.managerName,
+      phone:        customer.phone,
+      email:        customer.email,
+      quoteNumber:  customer.quoteNumber,
+      quoteDate:    customer.quoteDate,
+      shootDate:    customer.shootDate || null,
+      validUntil:   customer.validUntil,
+      items:        visibleItems,
+      supplyAmount,
+      discountAmount: totalDiscount,
+      vat,
+      totalAmount:  finalAmount,
+      depositAmount: Math.round(finalAmount * 0.5),
+      balanceAmount: Math.round(finalAmount * 0.5),
+      memos:        memo || null,
+    };
+
+    const encoded = encodeURIComponent(JSON.stringify(data));
+    window.open(`/contract?data=${encoded}`, "_blank");
   };
 
   const downloadPdf = async () => {
@@ -890,6 +944,15 @@ export default function QuoteBuilder() {
             <button className="primary-button" type="button" onClick={downloadPdf}>
               <Download size={18} />
               {isGenerating ? "PDF 생성 중" : "PDF 다운로드"}
+            </button>
+            <button
+              className="primary-button"
+              type="button"
+              onClick={goToContract}
+              style={{ background: "#E85D2C" }}
+            >
+              <FileText size={18} />
+              계약서 생성
             </button>
             <button className="secondary-button" type="button" onClick={resetForm}>
               <RefreshCcw size={18} />
