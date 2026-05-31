@@ -202,7 +202,7 @@ export default function ContractPage() {
             <circle cx="12" cy="12" r="3" fill="white"/>
           </svg>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: C.teal }}>PHOTO CLINIC · 브랜드촬영 계약서</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.teal }}>PHOTOCLINIC · 브랜드촬영 계약서</div>
             <div style={{ fontSize: 9, color: C.hint }}>{quote.hospitalName} · {quote.quoteNumber}</div>
           </div>
         </div>
@@ -352,14 +352,14 @@ function buildContractHtml(q: QuoteData): string {
   </div>`;
 
   // 고정 조항 (병원 촬영 전문)
-  const scope       = `포토클리닉은 ${q.hospitalName || "계약 병원"}의 병원 브랜드 이미지 구축을 위한 전문 촬영 서비스를 제공합니다.\n촬영 범위는 본 계약서 제2조의 항목에 한합니다.\n납품 결과물은 색보정 완료 JPG와 원본 파일을 제공합니다.\n영상 작업이 포함된 경우 편집 완료 영상(4K, FHD)을 파일로 제공합니다.\n촬영 항목 외 추가 촬영 시 별도 견적을 협의합니다.`;
+  const scope       = `포토클리닉은 병원 이미지브랜드 구축을 위한,\n전문 촬영 서비스(사진/영상)을 제공합니다.\n촬영 범위는 본 계약서 제2조의 항목에 한합니다.\n납품 결과물은 색보정 완료 JPG와 원본 파일을 제공합니다.\n영상 작업이 포함된 경우 편집 완료 영상(4K, FHD)을 파일로 제공합니다.\n촬영 항목 외 추가 촬영 시 별도 견적을 협의합니다.`;
   const deliverables = `납품 파일: 색보정 완료 JPG, 원본 파일, 편집 완료 영상(4K, FHD)\n전달 방법: 클라우드(NAS) 링크로 전달\n납품 수량: 촬영 항목별 협의된 수량 기준\n현장 상황에 따라 납품 수량은 ±10% 범위에서 조정될 수 있습니다.\n파일 보관: 납품 후 3개월간 보관합니다.\n3개월 이후 데이터 백업 서버로 이동하며, 이동 후에도 링크 전달이 가능합니다.`;
   const schedule     = `촬영 예정일: ${q.shootDate || "상호 협의 후 확정"}\n촬영 당일 준비사항은 사전 협의된 촬영 가이드를 따릅니다.\n최종 납품은 사진의 경우 촬영 완료일로부터 3주 이내 전달합니다.\n영상의 경우 5~6주 이내 전달하는 것을 원칙으로 합니다.\n납품 일정은 작업 범위에 따라 상호 협의할 수 있습니다.\n보정 기간 중 천재지변 등 불가항력 사유 발생 시 일정은 상호 협의합니다.`;
   const payment      = `계약 체결 시 선금(계약금) ${fmt(q.depositAmount)}원을 납부합니다.\n잔금 ${fmt(q.balanceAmount)}원은 최종 납품 파일 전달 전 납부합니다.\n입금 계좌: 1002-754-988962 (우리은행 / 제이크이미지연구소)\n계약금 입금 확인 후 촬영 일정이 공식 확정됩니다.\n세금계산서는 선금, 잔금 2회 모두 발행 가능합니다.\n잔금 후 통합 발행도 가능합니다.`;
   const copyright    = `촬영 결과물의 저작권은 계약 병원에 귀속됩니다.\n포토클리닉은 결과물을 포트폴리오, 홍보 및 마케팅 목적으로 사용할 수 있습니다.\n단, 민감한 의료정보나 얼굴 노출이 있는 부분은 병원의 동의 없이는 사용하지 않습니다.`;
   const retake       = `최종 전달 이후 추가 수정 요청은 1회에 한하여 무상으로 제공합니다.\n최종 전달 이후 14일이 지난 수정 요청은 유상으로 처리합니다.\n유상 수정 기준: 프로필 보정료 50,000원/1장, 연출사진 보정료 100,000원/10장`;
-  const confidential = `포토클리닉은 촬영 과정에서 취득한 계약 병원의 내부 정보를 외부에 공개하지 않습니다.\n내부 정보에는 환자 정보, 경영 정보 등이 포함됩니다.\n결과물은 계약 병원의 승인 전 SNS 등 외부 채널에 공개하지 않습니다.\n계약 병원의 승인 후 포토클리닉의 포트폴리오 채널에 게시될 수 있습니다.\n포트폴리오 채널에는 홈페이지, 인스타그램, 블로그 등이 포함됩니다.`;
-  const dispute      = `본 계약과 관련한 분쟁은 상호 협의를 우선으로 하며, 협의가 이루어지지 않을 경우 서울중앙지방법원을 관할 법원으로 합니다.\n본 계약서에 명시되지 않은 사항은 상관습 및 민법의 관련 규정에 따릅니다.`;
+  const confidential = `포토클리닉은 촬영 과정에서 취득한 계약 병원의 내부 정보를\n외부에 공개하지 않습니다.\n내부 정보에는 환자 정보, 경영 정보 등이 포함됩니다.\n결과물은 계약 병원의 승인 전 SNS 등 외부 채널에 공개하지 않습니다.\n계약 병원의 승인 후 포토클리닉의 포트폴리오 채널에 게시될 수 있습니다.\n포트폴리오 채널에는 홈페이지, 인스타그램, 블로그 등이 포함됩니다.`;
+  const dispute      = `본 계약과 관련한 분쟁은 상호 협의를 우선으로 하며,\n협의가 이루어지지 않을 경우 서울중앙지방법원을 관할 법원으로 합니다.\n본 계약서에 명시되지 않은 사항은 상관습 및 민법의 관련 규정에 따릅니다.`;
   const special      = `${q.memos ? `【메모】 ${q.memos}\n\n` : ""}본 계약서는 양 당사자가 서명(또는 날인)한 시점부터 법적 효력이 발생합니다.\n구두 합의 사항은 본 계약서에 반영된 경우에 한하여 효력을 인정합니다.\n촬영 현장에서의 안전사고에 대한 책임은 각 당사자가 부담합니다.`;
 
   return `<!DOCTYPE html>
@@ -435,8 +435,11 @@ function buildContractHtml(q: QuoteData): string {
   .sl .sk{font-size:11px;color:#9BB5B0;min-width:44px;}
   .sl .sv{font-size:12px;font-weight:600;color:#1C2B28;border-bottom:1px solid #C8DDD9;
           flex:1;padding-bottom:2px;min-height:18px;}
+  .hand-sign{font-family:'Nanum Myeongjo','Apple SD Gothic Neo',serif;font-size:19px;
+             font-weight:800;color:#1C2B28;letter-spacing:.04em;font-style:italic;}
   .stamp{margin-top:12px;height:56px;border:1px dashed #C8DDD9;border-radius:6px;
          display:flex;align-items:center;justify-content:center;font-size:10px;color:#C8DDD9;}
+  .effect-line{white-space:nowrap;}
   .footer{margin-top:24px;text-align:center;font-size:10px;color:#9BB5B0;
           padding-top:12px;border-top:1px solid #EEF4F3;}
   @media print{body{padding:16px 24px;} @page{size:A4;margin:1cm;}}
@@ -447,7 +450,7 @@ function buildContractHtml(q: QuoteData): string {
 <div class="top-accent"></div>
 <div class="header">
   <div>
-    <img class="brand-logo" src="/assets/photoclinic-logo.png" alt="PHOTO CLINIC">
+    <img class="brand-logo" src="/assets/photoclinic-logo.png" alt="PHOTOCLINIC">
     <div class="brand-sub">제이크이미지연구소 · 병원 전문 브랜드 촬영</div>
     <div class="brand-sub">사업자번호: 190-16-00212 · 제이크이미지연구소</div>
   </div>
@@ -472,7 +475,7 @@ function buildContractHtml(q: QuoteData): string {
     <h3>포토클리닉</h3>
     <div class="row"><span class="k">상호</span><span class="v">포토클리닉 (제이크이미지연구소)</span></div>
     <div class="row"><span class="k">대표자</span><span class="v">정연호</span></div>
-    <div class="row"><span class="k">연락처</span><span class="v">010-0000-0000</span></div>
+    <div class="row"><span class="k">연락처</span><span class="v">010-8556-2988</span></div>
     <div class="row"><span class="k">계좌</span><span class="v">1002-754-988962 (우리은행 / 제이크이미지연구소)</span></div>
   </div>
 </div>
@@ -521,7 +524,7 @@ ${section("제9조", "분쟁 해결", dispute)}
 ${section("제10조", "특약사항", special)}
 
 <div class="effect-box">
-  위 계약의 성립을 증명하기 위하여 본 계약서를 2부 작성하고, 각 1부씩 보관합니다.<br>
+  <span class="effect-line">위 계약의 성립을 증명하기 위하여 본 계약서를 2부 작성하고, 각 1부씩 보관합니다.</span><br>
   <strong>${today}</strong>
 </div>
 
@@ -531,7 +534,7 @@ ${section("제10조", "특약사항", special)}
     <div class="sl"><span class="sk">병원명</span><span class="sv">${q.hospitalName || ""}</span></div>
     <div class="sl"><span class="sk">담당자</span><span class="sv">${q.contactName || ""}</span></div>
     <div class="sl"><span class="sk">서명일</span><span class="sv"></span></div>
-    <div class="sl"><span class="sk">서명</span><span class="sv"></span></div>
+    <div class="sl"><span class="sk">서명</span><span class="sv hand-sign">정연호</span></div>
     <div class="stamp">직인 / 서명</div>
   </div>
   <div class="sign-box">
@@ -545,7 +548,7 @@ ${section("제10조", "특약사항", special)}
 </div>
 
 <div class="footer">
-  PHOTO CLINIC · 제이크이미지연구소 · 병원 전문 브랜드 촬영 · @photoclinic_kr<br>
+  PHOTOCLINIC · 제이크이미지연구소 · 병원 전문 브랜드 촬영 · @photoclinic_kr<br>
   본 계약서는 양 당사자가 서명한 시점부터 법적 효력이 발생합니다.
 </div>
 </body>
