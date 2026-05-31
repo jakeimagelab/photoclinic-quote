@@ -38,6 +38,53 @@ type BenefitItem = {
   name: string;
 };
 
+type ContractQuoteItem = {
+  name: string;
+  detail: string;
+  unitPrice: number;
+  qty: number;
+  subtotal: number;
+  note: string;
+};
+
+type ContractQuoteData = {
+  id: string;
+  savedAt: string;
+  title: string;
+  hospitalName: string;
+  contactName: string;
+  phone: string;
+  email: string;
+  quoteNumber: string;
+  quoteDate: string;
+  shootDate: string | null;
+  validUntil: string;
+  items: ContractQuoteItem[];
+  supplyAmount: number;
+  discountAmount: number;
+  vat: number;
+  totalAmount: number;
+  depositAmount: number;
+  balanceAmount: number;
+  memos: string | null;
+  formState: {
+    customer: CustomerInfo;
+    quoteTitle: string;
+    selectedPackageId: string | null;
+    selectedSingleItemIds: string[];
+    profileCount: number;
+    stagedCount: number;
+    floorCount: number;
+    largeHospital: boolean;
+    droneCount: number;
+    customItems: CustomItem[];
+    benefitItems: BenefitItem[];
+    discountRate: number;
+    extraDiscount: number;
+    memo: string;
+  };
+};
+
 type CustomerInfo = {
   hospitalName: string;
   managerName: string;
@@ -155,6 +202,8 @@ const numberValue = (value: string) => {
 
 const displayDate = (date: string) => date || "-";
 
+const RECENT_QUOTES_KEY = "photoclinic_recent_quotes_v1";
+
 const escapeHtml = (value: string) =>
   value
     .replace(/&/g, "&amp;")
@@ -183,8 +232,22 @@ export default function QuoteBuilder() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [basePreviewScale, setBasePreviewScale] = useState(0.48);
   const [previewZoom, setPreviewZoom] = useState(1);
+  const [recentQuotes, setRecentQuotes] = useState<ContractQuoteData[]>([]);
   const previewScale = Number((basePreviewScale * previewZoom).toFixed(3));
   const previewPercent = Math.round(previewZoom * 100);
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(RECENT_QUOTES_KEY);
+      if (!saved) return;
+      const parsed = JSON.parse(saved) as ContractQuoteData[];
+      if (Array.isArray(parsed)) {
+        setRecentQuotes(parsed.slice(0, 3));
+      }
+    } catch {
+      setRecentQuotes([]);
+    }
+  }, []);
 
   useEffect(() => {
     const shell = previewShellRef.current;
@@ -374,41 +437,54 @@ export default function QuoteBuilder() {
     setMemo("");
   };
 
-
-  // 계약서 생성 페이지로 이동 (견적 데이터 전달)
-  const goToContract = () => {
-    const selectedPkg = packages.find(p => p.id === selectedPackageId);
-    const visibleItems = [
-      ...(selectedPkg && selectedPkg.price > 0 ? [{
-        name: selectedPkg.name + " 패키지",
-        detail: selectedPkg.composition,
-        unitPrice: selectedPkg.price,
+  const buildContractQuoteData = (): ContractQuoteData => {
+    const visibleItems: ContractQuoteItem[] = [
+      ...(selectedPackage && selectedPackage.price > 0 ? [{
+        name: `${selectedPackage.name} 패키지`,
+        detail: selectedPackage.composition,
+        unitPrice: selectedPackage.price,
         qty: 1,
-        subtotal: selectedPkg.price,
+        subtotal: selectedPackage.price,
         note: "촬영 패키지"
       }] : []),
-      // items는 렌더 함수 스코프 → state 변수로 직접 계산
-      ...[
-        { name: "프로필 인원 추가",   detail: `${profileCount}인`,  amount: profileCount * 250000,  visible: profileCount > 0 },
-        { name: "연출 인원 추가",     detail: `${stagedCount}인`,   amount: stagedCount * 450000,   visible: stagedCount > 0 },
-        { name: "인테리어 층수 추가", detail: `${floorCount}층`,    amount: floorCount * 250000,    visible: floorCount > 0 },
-        { name: "병원급 규모 추가",   detail: "적용",               amount: 750000,                 visible: largeHospital },
-        { name: "드론촬영",           detail: `${droneCount}회`,    amount: droneCount * 500000,    visible: droneCount > 0 },
-      ].filter(i => i.visible).map(i => ({
-        name: i.name, detail: i.detail, unitPrice: i.amount,
-        qty: 1, subtotal: i.amount, note: ""
-      })),
-      ...customItems.filter((i: any) => i.name && i.amount > 0).map((i: any) => ({
-        name: i.name,
-        detail: "",
-        unitPrice: i.amount,
+      ...selectedSingleItems.map((item) => ({
+        name: item.name,
+        detail: "단일 촬영 항목",
+        unitPrice: item.price,
         qty: 1,
-        subtotal: i.amount,
+        subtotal: item.price,
+        note: "단일항목"
+      })),
+      ...optionItems.map((item) => ({
+        name: item.name,
+        detail: item.detail,
+        unitPrice: item.amount,
+        qty: 1,
+        subtotal: item.amount,
+        note: "추가 옵션"
+      })),
+      ...visibleCustomItems.map((item) => ({
+        name: item.name,
+        detail: item.detail,
+        unitPrice: item.amount,
+        qty: 1,
+        subtotal: item.amount,
         note: "기타"
       })),
+      ...visibleBenefitItems.map((item) => ({
+        name: item.name,
+        detail: "서비스 및 혜택",
+        unitPrice: 0,
+        qty: 1,
+        subtotal: 0,
+        note: "서비스"
+      }))
     ];
 
-    const data = {
+    return {
+      id: `${customer.quoteNumber || "quote"}-${Date.now()}`,
+      savedAt: new Date().toISOString(),
+      title: quoteTitle,
       hospitalName: customer.hospitalName,
       contactName:  customer.managerName,
       phone:        customer.phone,
@@ -419,20 +495,76 @@ export default function QuoteBuilder() {
       validUntil:   customer.validUntil,
       items:        visibleItems,
       supplyAmount,
-      discountAmount: totalDiscount,
+      discountAmount: discountTotal,
       vat,
       totalAmount:  finalAmount,
       depositAmount: Math.round(finalAmount * 0.5),
       balanceAmount: Math.round(finalAmount * 0.5),
       memos:        memo || null,
+      formState: {
+        customer,
+        quoteTitle,
+        selectedPackageId,
+        selectedSingleItemIds,
+        profileCount,
+        stagedCount,
+        floorCount,
+        largeHospital,
+        droneCount,
+        customItems,
+        benefitItems,
+        discountRate,
+        extraDiscount,
+        memo
+      }
     };
+  };
 
-    const encoded = encodeURIComponent(JSON.stringify(data));
+  const saveRecentQuote = (data: ContractQuoteData) => {
+    const next = [data, ...recentQuotes.filter((item) => item.quoteNumber !== data.quoteNumber)].slice(0, 3);
+    setRecentQuotes(next);
+    window.localStorage.setItem(RECENT_QUOTES_KEY, JSON.stringify(next));
+  };
+
+  const loadRecentQuote = (data: ContractQuoteData) => {
+    setCustomer(data.formState.customer);
+    setQuoteTitle(data.formState.quoteTitle);
+    setSelectedPackageId(data.formState.selectedPackageId);
+    setSelectedSingleItemIds(data.formState.selectedSingleItemIds);
+    setProfileCount(data.formState.profileCount);
+    setStagedCount(data.formState.stagedCount);
+    setFloorCount(data.formState.floorCount);
+    setLargeHospital(data.formState.largeHospital);
+    setDroneCount(data.formState.droneCount);
+    setCustomItems(data.formState.customItems);
+    setBenefitItems(data.formState.benefitItems);
+    setDiscountRate(data.formState.discountRate);
+    setExtraDiscount(data.formState.extraDiscount);
+    setMemo(data.formState.memo);
+  };
+
+  const openContractWithQuote = (data: ContractQuoteData) => {
+    const { formState, ...contractPayload } = data;
+    const encoded = encodeURIComponent(JSON.stringify(contractPayload));
     window.open(`/contract?data=${encoded}`, "_blank");
+  };
+
+  // 계약서 생성 페이지로 이동 (견적 데이터 전달)
+  const goToContract = () => {
+    const data = buildContractQuoteData();
+    saveRecentQuote(data);
+    openContractWithQuote(data);
+  };
+
+  const saveCurrentQuoteSnapshot = () => {
+    const data = buildContractQuoteData();
+    saveRecentQuote(data);
+    return data;
   };
 
   const downloadPdf = async () => {
     if (!previewRef.current || isGenerating) return;
+    saveCurrentQuoteSnapshot();
 
     const pdfWindow = window.open("", "_blank");
 
@@ -943,6 +1075,47 @@ export default function QuoteBuilder() {
             />
           </Panel>
 
+          <Panel title="최근 생성 견적 3개">
+            {recentQuotes.length === 0 ? (
+              <p className="empty-text">PDF 다운로드 또는 계약서 생성을 누르면 최근 견적이 자동 보관됩니다.</p>
+            ) : (
+              <div className="grid gap-3">
+                {recentQuotes.map((item) => (
+                  <div key={item.id} className="rounded-lg border border-[#ddd5c9] bg-[#faf7f2] p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <strong className="block text-sm text-[#155855]">
+                          {item.hospitalName || "병원명 없음"}
+                        </strong>
+                        <span className="mt-1 block text-xs text-[#6f6961]">
+                          {item.quoteNumber} · {displayDate(item.quoteDate)} · {won(item.totalAmount)}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          onClick={() => loadRecentQuote(item)}
+                        >
+                          불러오기
+                        </button>
+                        <button
+                          type="button"
+                          className="primary-button"
+                          onClick={() => openContractWithQuote(item)}
+                          style={{ background: "#E85D2C" }}
+                        >
+                          <FileText size={16} />
+                          계약서
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Panel>
+
           <div className="action-button-bar">
             <button className="primary-button" type="button" onClick={downloadPdf}>
               <Download size={18} />
@@ -955,7 +1128,7 @@ export default function QuoteBuilder() {
               style={{ background: "#E85D2C" }}
             >
               <FileText size={18} />
-              계약서 생성
+              고객 승인 후 계약서 생성
             </button>
             <button className="secondary-button" type="button" onClick={resetForm}>
               <RefreshCcw size={18} />

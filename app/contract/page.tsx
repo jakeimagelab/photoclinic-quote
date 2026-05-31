@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface QuoteData {
   hospitalName: string;
@@ -29,9 +29,11 @@ const C = {
 const fmt = (n: number) => (n || 0).toLocaleString("ko-KR");
 
 export default function ContractPage() {
+  const previewFrameRef = useRef<HTMLIFrameElement>(null);
   const [quote,      setQuote]      = useState<QuoteData | null>(null);
   const [contractHtml, setContractHtml] = useState("");
   const [sending,    setSending]    = useState(false);
+  const [pdfGenerating, setPdfGenerating] = useState(false);
   const [sendResult, setSendResult] = useState("");
   const [toEmail,    setToEmail]    = useState("");
   const [toName,     setToName]     = useState("");
@@ -54,18 +56,76 @@ export default function ContractPage() {
     }
   }, []);
 
-  const downloadHtml = () => {
+  const createContractPdf = async () => {
+    if (!quote || !previewFrameRef.current?.contentDocument?.body) {
+      throw new Error("계약서 미리보기를 불러온 뒤 다시 시도해주세요.");
+    }
+
+    const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+      import("html2canvas"),
+      import("jspdf")
+    ]);
+
+    const doc = previewFrameRef.current.contentDocument;
+    const body = doc.body;
+    const html = doc.documentElement;
+    const width = Math.max(body.scrollWidth, html.scrollWidth, body.offsetWidth, html.offsetWidth);
+    const height = Math.max(body.scrollHeight, html.scrollHeight, body.offsetHeight, html.offsetHeight);
+
+    if (doc.fonts?.ready) {
+      await doc.fonts.ready;
+    }
+
+    const canvas = await html2canvas(body, {
+      scale: 2,
+      backgroundColor: "#ffffff",
+      useCORS: true,
+      allowTaint: false,
+      logging: false,
+      width,
+      height,
+      windowWidth: width,
+      windowHeight: height,
+      scrollX: 0,
+      scrollY: 0
+    });
+
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const imgWidth = pageWidth;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    const image = canvas.toDataURL("image/png");
+
+    let position = 0;
+    let remainingHeight = imgHeight;
+    pdf.addImage(image, "PNG", 0, position, imgWidth, imgHeight);
+    remainingHeight -= pageHeight;
+
+    while (remainingHeight > 0) {
+      position -= pageHeight;
+      pdf.addPage();
+      pdf.addImage(image, "PNG", 0, position, imgWidth, imgHeight);
+      remainingHeight -= pageHeight;
+    }
+
+    return pdf;
+  };
+
+  const contractFileName = () =>
+    `포토클리닉_계약서_${quote?.hospitalName || "고객"}_${quote?.quoteDate || ""}.pdf`;
+
+  const downloadPdf = async () => {
     if (!contractHtml || !quote) return;
-    const blob = new Blob([contractHtml], { type: "text/html;charset=utf-8" });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement("a");
-    a.href     = url;
-    a.download = `포토클리닉_계약서_${quote.hospitalName}_${quote.quoteDate || ""}.html`;
-    a.click();
-    URL.revokeObjectURL(url);
-    setTimeout(() => {
-      alert("📄 다운로드된 HTML 파일을 Chrome으로 열고\n⌘P → PDF로 저장 하면 계약서 PDF가 완성됩니다.");
-    }, 400);
+    setPdfGenerating(true); setError("");
+    try {
+      const pdf = await createContractPdf();
+      pdf.save(contractFileName());
+    } catch (e: any) {
+      setError(e.message || "PDF 생성에 실패했습니다.");
+    } finally {
+      setPdfGenerating(false);
+    }
   };
 
   const sendMail = async () => {
@@ -73,6 +133,8 @@ export default function ContractPage() {
     if (!contractHtml || !quote) return;
     setSending(true); setError(""); setSendResult("");
     try {
+      const pdf = await createContractPdf();
+      const contractPdfBase64 = pdf.output("datauristring").split(",")[1];
       const res  = await fetch("/api/send-contract", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -81,6 +143,8 @@ export default function ContractPage() {
           toName,
           hospitalName: quote.hospitalName,
           contractHtml,
+          contractPdfBase64,
+          fileName:      contractFileName(),
           message:      mailMsg,
         }),
       });
@@ -138,11 +202,11 @@ export default function ContractPage() {
                      borderRadius: 8, fontSize: 12, cursor: "pointer", fontFamily: "inherit", color: C.muted }}>
             ← 견적서로
           </button>
-          <button onClick={downloadHtml}
+          <button onClick={downloadPdf} disabled={pdfGenerating}
             style={{ height: 34, padding: "0 14px", background: C.teal, color: "#fff",
                      border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700,
                      cursor: "pointer", fontFamily: "inherit" }}>
-            📄 PDF 저장
+            {pdfGenerating ? "PDF 생성 중..." : "PDF 저장"}
           </button>
         </div>
       </nav>
@@ -155,10 +219,10 @@ export default function ContractPage() {
           <div style={{ background: C.mint, padding: "12px 20px", borderBottom: `1px solid ${C.border}`,
                          display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.teal }}>계약서 미리보기</div>
-            <div style={{ fontSize: 11, color: C.muted }}>Chrome 인쇄(⌘P) → PDF로 저장</div>
+            <div style={{ fontSize: 11, color: C.muted }}>미리보기 내용 그대로 PDF 생성</div>
           </div>
           <div style={{ padding: 16, background: "#F8FAFA" }}>
-            <iframe srcDoc={contractHtml} style={{ width: "100%", height: 700,
+            <iframe ref={previewFrameRef} srcDoc={contractHtml} style={{ width: "100%", height: 700,
                                                      border: `1px solid ${C.border}`,
                                                      borderRadius: 8, background: "#fff" }}
                     title="계약서 미리보기"/>
@@ -188,12 +252,13 @@ export default function ContractPage() {
           <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: "16px 18px" }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: C.teal, marginBottom: 8 }}>📄 PDF 저장</div>
             <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.7, marginBottom: 12 }}>
-              HTML 파일 다운로드 후<br/>Chrome에서 열고 ⌘P → PDF로 저장
+              계약서 미리보기 내용 그대로<br/>PDF 파일을 생성합니다.
             </div>
-            <button onClick={downloadHtml}
+            <button onClick={downloadPdf} disabled={pdfGenerating}
               style={{ width: "100%", height: 42, background: C.teal, color: "#fff", border: "none",
-                       borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-              계약서 다운로드
+                       borderRadius: 9, fontSize: 13, fontWeight: 700,
+                       cursor: pdfGenerating ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
+              {pdfGenerating ? "PDF 생성 중..." : "계약서 PDF 다운로드"}
             </button>
           </div>
 
@@ -241,7 +306,7 @@ export default function ContractPage() {
                          fontWeight: 700, cursor: sending || !toEmail ? "not-allowed" : "pointer",
                          fontFamily: "inherit", display: "flex", alignItems: "center",
                          justifyContent: "center", gap: 6 }}>
-                {sending ? "발송 중..." : "📨 계약서 메일 발송"}
+                {sending ? "PDF 생성 및 발송 중..." : "📨 PDF 생성 후 메일 발송"}
               </button>
             </div>
           </div>

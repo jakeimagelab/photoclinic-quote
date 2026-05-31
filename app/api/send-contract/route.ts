@@ -7,8 +7,11 @@ export async function POST(req: NextRequest) {
   if (!resendKey) return NextResponse.json({ ok: false, error: "RESEND_API_KEY 미설정" }, { status: 500 });
 
   const body = await req.json();
-  const { to, toName, hospitalName, contractHtml, message } = body;
+  const { to, toName, hospitalName, contractHtml, contractPdfBase64, fileName, message } = body;
   if (!to) return NextResponse.json({ ok: false, error: "수신 이메일 없음" }, { status: 400 });
+  if (!contractPdfBase64 && !contractHtml) {
+    return NextResponse.json({ ok: false, error: "계약서 파일 없음" }, { status: 400 });
+  }
 
   const emailHtml = `<!DOCTYPE html>
 <html lang="ko">
@@ -29,7 +32,7 @@ export async function POST(req: NextRequest) {
       <div style="background:#EAF4F2;border-left:4px solid #155855;border-radius:0 8px 8px 0;padding:12px 16px;margin-bottom:18px;">
         <div style="font-size:11px;font-weight:700;color:#155855;margin-bottom:5px;">📋 계약서 확인 방법</div>
         <div style="font-size:11px;color:#5A7470;line-height:1.8;">
-          1. 첨부된 계약서 파일(.html)을 Chrome으로 열어주세요<br>
+          1. 첨부된 계약서 PDF를 확인해주세요<br>
           2. 내용 검토 후 서명란에 서명·날인하여 회신해 주세요<br>
           3. 계약금 입금 확인 후 촬영 일정이 확정됩니다
         </div>
@@ -46,7 +49,15 @@ export async function POST(req: NextRequest) {
 </body>
 </html>`;
 
-  const attachmentBase64 = Buffer.from(contractHtml, "utf-8").toString("base64");
+  const attachment = contractPdfBase64
+    ? {
+        filename: fileName || `포토클리닉_계약서_${hospitalName}.pdf`,
+        content: contractPdfBase64,
+      }
+    : {
+        filename: `포토클리닉_계약서_${hospitalName}.html`,
+        content: Buffer.from(contractHtml, "utf-8").toString("base64"),
+      };
 
   const resendRes = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -59,10 +70,7 @@ export async function POST(req: NextRequest) {
       to:      [to],
       subject: `[포토클리닉] ${hospitalName} 촬영 계약서`,
       html:    emailHtml,
-      attachments: [{
-        filename: `포토클리닉_계약서_${hospitalName}.html`,
-        content:  attachmentBase64,
-      }],
+      attachments: [attachment],
     }),
   });
 
