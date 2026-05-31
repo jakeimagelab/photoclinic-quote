@@ -406,6 +406,86 @@ textarea:focus {
   transform: translateY(-1px);
 }
 
+.recent-quote-list {
+  display: grid;
+  gap: 10px;
+}
+
+.recent-quote-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  border: 1px solid #d9cec0;
+  border-radius: 10px;
+  background: #fffdfa;
+  padding: 13px 14px;
+}
+
+.recent-quote-main {
+  min-width: 0;
+}
+
+.recent-quote-main strong {
+  display: block;
+  color: #155855;
+  font-size: 15px;
+  line-height: 1.35;
+  word-break: keep-all;
+}
+
+.recent-quote-main span {
+  display: block;
+  margin-top: 4px;
+  color: #746c63;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.recent-quote-main b {
+  display: block;
+  margin-top: 2px;
+  color: #e85d2c;
+  font-size: 13px;
+}
+
+.recent-quote-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.recent-quote-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 36px;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  transition: transform 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+.recent-quote-button:hover {
+  transform: translateY(-1px);
+}
+
+.recent-quote-button-ghost {
+  border: 1px solid #d7cec1;
+  background: #ffffff;
+  color: #155855;
+}
+
+.recent-quote-button-accent {
+  border: 1px solid #155855;
+  background: #e85d2c;
+  color: #ffffff;
+}
+
 
 .action-button-bar {
   display: grid;
@@ -417,6 +497,20 @@ textarea:focus {
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.95);
   box-shadow: 0 12px 28px rgba(21, 88, 85, 0.12);
+}
+
+@media (max-width: 900px) {
+  .recent-quote-card {
+    grid-template-columns: 1fr;
+  }
+
+  .recent-quote-actions {
+    justify-content: stretch;
+  }
+
+  .recent-quote-button {
+    flex: 1 1 120px;
+  }
 }
 
 .preview-shell {
