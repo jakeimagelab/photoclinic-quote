@@ -7,11 +7,13 @@ import {
   Plus,
   RefreshCcw,
   Trash2,
+  Upload,
   UserRound,
   WalletCards,
   ZoomIn,
-  ZoomOut
-, FileText } from "lucide-react";
+  ZoomOut,
+  FileText
+} from "lucide-react";
 
 type PackageOption = {
   id: string;
@@ -94,6 +96,14 @@ type CustomerInfo = {
   validUntil: string;
   shootDate: string;
   quoteNumber: string;
+};
+
+type ImportedPdfQuote = {
+  hospitalName: string;
+  quoteNumber: string;
+  quoteDate: string;
+  totalAmount: number;
+  rawText: string;
 };
 
 const packages: PackageOption[] = [
@@ -204,6 +214,32 @@ const displayDate = (date: string) => date || "-";
 
 const RECENT_QUOTES_KEY = "photoclinic_recent_quotes_v1";
 
+const uniqueQuoteItems = (items: string[]) => Array.from(new Set(items.map((item) => item.trim()).filter(Boolean)));
+
+const parseQuotePdfText = (text: string): ImportedPdfQuote => {
+  const normalized = text.replace(/\r/g, "\n").replace(/[ \t]+/g, " ").trim();
+  const compact = normalized.replace(/\s+/g, " ");
+  const quoteNumber = compact.match(/PC-\d{8}-\d{3}/)?.[0] || createQuoteNumber();
+  const quoteDate = compact.match(/\d{4}-\d{2}-\d{2}/)?.[0] || todayValue();
+  const amounts = Array.from(compact.matchAll(/([\d,]{4,})\s*원?/g))
+    .map((match) => Number(match[1].replace(/,/g, "")))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  const totalAmount = amounts.length ? Math.max(...amounts) : 0;
+  const hospitalName =
+    normalized.match(/TO\.\s*([^\n]+)/i)?.[1]?.trim() ||
+    normalized.match(/(?:병원명|수신|고객명)\s*[:：]?\s*([^\n]+)/)?.[1]?.trim() ||
+    normalized.match(/([가-힣A-Za-z0-9\s]{2,}(?:병원|의원|클리닉|치과|한의원))/)?.[1]?.trim() ||
+    "";
+
+  return {
+    hospitalName,
+    quoteNumber,
+    quoteDate,
+    totalAmount,
+    rawText: normalized
+  };
+};
+
 const escapeHtml = (value: string) =>
   value
     .replace(/&/g, "&amp;")
@@ -215,6 +251,7 @@ const escapeHtml = (value: string) =>
 export default function QuoteBuilder() {
   const previewRef = useRef<HTMLDivElement>(null);
   const previewShellRef = useRef<HTMLDivElement>(null);
+  const quotePdfInputRef = useRef<HTMLInputElement>(null);
   const [customer, setCustomer] = useState<CustomerInfo>(() => initialCustomer());
   const [quoteTitle, setQuoteTitle] = useState("포토클리닉 브랜드사진 견적서");
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(packages[0].id);
@@ -230,6 +267,8 @@ export default function QuoteBuilder() {
   const [extraDiscount, setExtraDiscount] = useState(0);
   const [memo, setMemo] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isImportingQuotePdf, setIsImportingQuotePdf] = useState(false);
+  const [pdfImportMessage, setPdfImportMessage] = useState("");
   const [basePreviewScale, setBasePreviewScale] = useState(0.48);
   const [previewZoom, setPreviewZoom] = useState(1);
   const [recentQuotes, setRecentQuotes] = useState<ContractQuoteData[]>([]);
@@ -603,6 +642,134 @@ export default function QuoteBuilder() {
     const data = buildContractQuoteData();
     saveRecentQuote(data);
     return data;
+  };
+
+  const createContractQuoteFromImportedPdf = (parsed: ImportedPdfQuote): ContractQuoteData => {
+    const supply = Math.round(parsed.totalAmount / 1.1);
+    const vatAmount = Math.max(parsed.totalAmount - supply, 0);
+    const itemNames = uniqueQuoteItems(
+      [
+        "스탠다드",
+        "프리미엄",
+        "프리미엄 플러스",
+        "프로필촬영",
+        "연출 촬영",
+        "인테리어 촬영",
+        "브랜드필름",
+        "포인트영상",
+        "드론촬영"
+      ].filter((keyword) => parsed.rawText.includes(keyword))
+    );
+
+    return {
+      id: `${parsed.quoteNumber || "pdf-quote"}-${Date.now()}`,
+      savedAt: new Date().toISOString(),
+      title: "기존 견적서 PDF 기반 계약서",
+      hospitalName: parsed.hospitalName,
+      contactName: "",
+      phone: "",
+      email: "",
+      quoteNumber: parsed.quoteNumber,
+      quoteDate: parsed.quoteDate,
+      shootDate: null,
+      validUntil: addDays(parsed.quoteDate, 14),
+      items: [
+        {
+          name: itemNames.length ? itemNames.join(", ") : "기존 견적서 PDF 항목",
+          detail: "업로드한 견적서 PDF에서 추출한 계약 항목입니다.",
+          unitPrice: supply,
+          qty: 1,
+          subtotal: supply,
+          note: "PDF 불러오기"
+        }
+      ],
+      supplyAmount: supply,
+      discountAmount: 0,
+      vat: vatAmount,
+      totalAmount: parsed.totalAmount,
+      depositAmount: Math.round(parsed.totalAmount * 0.5),
+      balanceAmount: parsed.totalAmount - Math.round(parsed.totalAmount * 0.5),
+      memos: "기존 견적서 PDF를 기준으로 생성한 계약서입니다."
+    };
+  };
+
+  const importQuotePdf = async (file: File) => {
+    setIsImportingQuotePdf(true);
+    setPdfImportMessage("");
+
+    try {
+      const pdfjsUrl = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
+      const workerUrl = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
+      const pdfjs = (await import(/* webpackIgnore: true */ pdfjsUrl)) as any;
+      pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+
+      const buffer = await file.arrayBuffer();
+      const pdf = await pdfjs.getDocument({ data: buffer }).promise;
+      const pageTexts: string[] = [];
+
+      for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+        const page = await pdf.getPage(pageNumber);
+        const content = await page.getTextContent();
+        pageTexts.push(content.items.map((item: any) => item.str).join("\n"));
+      }
+
+      let fullText = pageTexts.join("\n").trim();
+      if (!fullText || fullText.length < 30) {
+        setPdfImportMessage("텍스트가 없는 이미지형 PDF입니다. OCR로 내용을 읽는 중입니다. 잠시만 기다려주세요.");
+
+        try {
+          const tesseractUrl = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.esm.min.js";
+          const tesseract = (await import(/* webpackIgnore: true */ tesseractUrl)) as any;
+          const { createWorker } = tesseract;
+          const worker = await createWorker("kor+eng");
+          const ocrTexts: string[] = [];
+          const pageLimit = Math.min(pdf.numPages, 2);
+
+          for (let pageNumber = 1; pageNumber <= pageLimit; pageNumber += 1) {
+            const page = await pdf.getPage(pageNumber);
+            const viewport = page.getViewport({ scale: 2 });
+            const canvas = document.createElement("canvas");
+            const context = canvas.getContext("2d");
+            if (!context) continue;
+
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            await page.render({ canvasContext: context, viewport }).promise;
+            const result = await worker.recognize(canvas);
+            ocrTexts.push(result.data.text);
+          }
+
+          await worker.terminate();
+          fullText = ocrTexts.join("\n").trim();
+        } catch {
+          setPdfImportMessage("이미지형 PDF라 자동 추출이 어렵습니다. OCR 읽기에 실패했습니다.");
+          return;
+        }
+
+        if (!fullText || fullText.length < 30) {
+          setPdfImportMessage("이미지형 PDF를 OCR로 읽었지만 계약서 생성에 필요한 텍스트를 찾지 못했습니다.");
+          return;
+        }
+      }
+
+      const parsed = parseQuotePdfText(fullText);
+      if (!parsed.totalAmount) {
+        setPdfImportMessage("PDF 텍스트는 읽었지만 최종 금액을 찾지 못했습니다. 견적서 양식이 다르면 수동 확인이 필요합니다.");
+        return;
+      }
+
+      const data = createContractQuoteFromImportedPdf(parsed);
+      saveRecentQuote(data);
+      setPdfImportMessage("PDF 내용을 읽어 최근 견적 목록에 추가했습니다. 목록에서 계약서를 눌러 생성할 수 있습니다.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setPdfImportMessage(`PDF 불러오기에 실패했습니다: ${message}`);
+    } finally {
+      setIsImportingQuotePdf(false);
+      if (quotePdfInputRef.current) {
+        quotePdfInputRef.current.value = "";
+      }
+    }
   };
 
   const downloadPdf = async () => {
@@ -1116,6 +1283,40 @@ export default function QuoteBuilder() {
               placeholder="견적서에 함께 남길 메모를 입력하세요."
               rows={4}
             />
+          </Panel>
+
+          <Panel title="기존 견적서 PDF 불러오기" icon={<Upload size={18} />}>
+            <div className="grid gap-3">
+              <input
+                ref={quotePdfInputRef}
+                type="file"
+                accept="application/pdf"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) {
+                    void importQuotePdf(file);
+                  }
+                }}
+              />
+              <button
+                type="button"
+                className="secondary-button w-full"
+                onClick={() => quotePdfInputRef.current?.click()}
+                disabled={isImportingQuotePdf}
+              >
+                <Upload size={18} />
+                {isImportingQuotePdf ? "PDF 읽는 중" : "기존 견적서 PDF 선택"}
+              </button>
+              <p className="empty-text">
+                텍스트 PDF는 바로 읽고, 이미지형 PDF는 OCR로 읽어 최근 견적 목록에 추가합니다.
+              </p>
+              {pdfImportMessage ? (
+                <div className="rounded-lg border border-[#d8d0c4] bg-white px-4 py-3 text-sm leading-6 text-[#155855]">
+                  {pdfImportMessage}
+                </div>
+              ) : null}
+            </div>
           </Panel>
 
           <Panel title="최근 생성 견적 3개">
