@@ -352,13 +352,13 @@ function buildContractHtml(q: QuoteData): string {
   </div>`;
 
   // 고정 조항 (병원 촬영 전문)
-  const scope       = `포토클리닉은 ${q.hospitalName || "계약 병원"}의 병원 브랜드 이미지 구축을 위한 전문 촬영 서비스를 제공합니다.\n촬영 범위는 본 계약서 제2조의 항목에 한하며, 납품 결과물은 색보정이 완료된 JPG와 원본 또는 편집이 완료된 영상(4K, FHD)을 파일로 제공합니다.\n촬영 항목 외 추가 촬영 시 별도 견적을 협의합니다.`;
-  const deliverables = `납품 파일: 색보정 완료 JPG와 원본 또는 편집이 완료된 영상(4K, FHD) 파일\n전달 방법: 클라우드(NAS) 링크로 전달\n납품 수량: 촬영 항목별 협의된 수량 기준 (현장 상황에 따라 ±10% 조정 가능)\n파일 보관: 납품 후 3개월 보관 후 데이터 백업 서버로 이동하며, 이동 후에도 링크 전달이 가능합니다.`;
-  const schedule     = `촬영 예정일: ${q.shootDate || "상호 협의 후 확정"}\n촬영 당일 준비사항은 사전 협의된 촬영 가이드를 따릅니다.\n최종 납품은 사진의 경우 촬영 완료일로부터 3주 이내, 영상의 경우 5~6주 이내 전달하는 것을 원칙으로 하며, 이 부분에 대해서는 상호 협의할 수 있습니다.\n보정 기간 중 천재지변 등 불가항력 사유 발생 시 일정은 상호 협의합니다.`;
-  const payment      = `계약 체결 시 선금(계약금) ${fmt(q.depositAmount)}원을 납부하며, 잔금 ${fmt(q.balanceAmount)}원은 최종 납품 파일 전달 전 납부합니다.\n입금 계좌: 1002-754-988962 (우리은행 / 제이크이미지연구소)\n계약금 입금 확인 후 촬영 일정이 공식 확정됩니다.\n세금계산서는 선금, 잔금 2회 모두 발행 가능하며, 잔금 후 통합으로 발행도 가능합니다.`;
+  const scope       = `포토클리닉은 ${q.hospitalName || "계약 병원"}의 병원 브랜드 이미지 구축을 위한 전문 촬영 서비스를 제공합니다.\n촬영 범위는 본 계약서 제2조의 항목에 한합니다.\n납품 결과물은 색보정 완료 JPG와 원본 파일을 제공합니다.\n영상 작업이 포함된 경우 편집 완료 영상(4K, FHD)을 파일로 제공합니다.\n촬영 항목 외 추가 촬영 시 별도 견적을 협의합니다.`;
+  const deliverables = `납품 파일: 색보정 완료 JPG, 원본 파일, 편집 완료 영상(4K, FHD)\n전달 방법: 클라우드(NAS) 링크로 전달\n납품 수량: 촬영 항목별 협의된 수량 기준\n현장 상황에 따라 납품 수량은 ±10% 범위에서 조정될 수 있습니다.\n파일 보관: 납품 후 3개월간 보관합니다.\n3개월 이후 데이터 백업 서버로 이동하며, 이동 후에도 링크 전달이 가능합니다.`;
+  const schedule     = `촬영 예정일: ${q.shootDate || "상호 협의 후 확정"}\n촬영 당일 준비사항은 사전 협의된 촬영 가이드를 따릅니다.\n최종 납품은 사진의 경우 촬영 완료일로부터 3주 이내 전달합니다.\n영상의 경우 5~6주 이내 전달하는 것을 원칙으로 합니다.\n납품 일정은 작업 범위에 따라 상호 협의할 수 있습니다.\n보정 기간 중 천재지변 등 불가항력 사유 발생 시 일정은 상호 협의합니다.`;
+  const payment      = `계약 체결 시 선금(계약금) ${fmt(q.depositAmount)}원을 납부합니다.\n잔금 ${fmt(q.balanceAmount)}원은 최종 납품 파일 전달 전 납부합니다.\n입금 계좌: 1002-754-988962 (우리은행 / 제이크이미지연구소)\n계약금 입금 확인 후 촬영 일정이 공식 확정됩니다.\n세금계산서는 선금, 잔금 2회 모두 발행 가능합니다.\n잔금 후 통합 발행도 가능합니다.`;
   const copyright    = `촬영 결과물의 저작권은 계약 병원에 귀속됩니다.\n포토클리닉은 결과물을 포트폴리오, 홍보 및 마케팅 목적으로 사용할 수 있습니다.\n단, 민감한 의료정보나 얼굴 노출이 있는 부분은 병원의 동의 없이는 사용하지 않습니다.`;
   const retake       = `최종 전달 이후 추가 수정 요청은 1회에 한하여 무상으로 제공합니다.\n최종 전달 이후 14일이 지난 수정 요청은 유상으로 처리합니다.\n유상 수정 기준: 프로필 보정료 50,000원/1장, 연출사진 보정료 100,000원/10장`;
-  const confidential = `포토클리닉은 촬영 과정에서 취득한 계약 병원의 내부 정보(환자 정보, 경영 정보 등)를 외부에 공개하지 않습니다.\n결과물은 계약 병원의 승인 전 SNS 등 외부 채널에 공개하지 않습니다.\n계약 병원의 승인 후 포토클리닉의 포트폴리오 채널(홈페이지 및 인스타그램, 블로그 등)에 게시될 수 있으며, 계약 병원은 이에 동의합니다.`;
+  const confidential = `포토클리닉은 촬영 과정에서 취득한 계약 병원의 내부 정보를 외부에 공개하지 않습니다.\n내부 정보에는 환자 정보, 경영 정보 등이 포함됩니다.\n결과물은 계약 병원의 승인 전 SNS 등 외부 채널에 공개하지 않습니다.\n계약 병원의 승인 후 포토클리닉의 포트폴리오 채널에 게시될 수 있습니다.\n포트폴리오 채널에는 홈페이지, 인스타그램, 블로그 등이 포함됩니다.`;
   const dispute      = `본 계약과 관련한 분쟁은 상호 협의를 우선으로 하며, 협의가 이루어지지 않을 경우 서울중앙지방법원을 관할 법원으로 합니다.\n본 계약서에 명시되지 않은 사항은 상관습 및 민법의 관련 규정에 따릅니다.`;
   const special      = `${q.memos ? `【메모】 ${q.memos}\n\n` : ""}본 계약서는 양 당사자가 서명(또는 날인)한 시점부터 법적 효력이 발생합니다.\n구두 합의 사항은 본 계약서에 반영된 경우에 한하여 효력을 인정합니다.\n촬영 현장에서의 안전사고에 대한 책임은 각 당사자가 부담합니다.`;
 
@@ -377,8 +377,8 @@ function buildContractHtml(q: QuoteData): string {
   .header{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:28px;align-items:start;
           margin-bottom:24px;padding-bottom:20px;border-bottom:2px solid #155855;}
   .brand-logo{width:138px;height:auto;display:block;margin-bottom:12px;}
-  .brand-sub{font-size:10.5px;color:#6B8B87;margin-top:3px;white-space:nowrap;}
-  .doc-title{font-size:23px;font-weight:700;color:#1C2B28;letter-spacing:1px;text-align:right;white-space:nowrap;}
+  .brand-sub{font-size:10.5px;color:#6B8B87;margin-top:3px;line-height:1.55;}
+  .doc-title{font-size:22px;font-weight:700;color:#1C2B28;letter-spacing:.5px;text-align:right;white-space:nowrap;}
   .doc-meta{font-size:11px;color:#6B8B87;text-align:right;margin-top:8px;line-height:1.7;}
   .doc-meta strong{color:#E85D2C;}
   .parties{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px;}
@@ -386,9 +386,9 @@ function buildContractHtml(q: QuoteData): string {
   .party.party-client{border-top-color:#E85D2C;}
   .party h3{font-size:11px;font-weight:700;color:#155855;letter-spacing:.02em;margin-bottom:9px;}
   .party.party-client h3{color:#E85D2C;}
-  .party .row{display:grid;grid-template-columns:58px 1fr;gap:10px;padding:4px 0;font-size:11.5px;border-bottom:1px solid #EEF4F3;}
+  .party .row{display:grid;grid-template-columns:58px minmax(0,1fr);gap:10px;padding:4px 0;font-size:11.5px;border-bottom:1px solid #EEF4F3;}
   .party .k{color:#6B8B87;}
-  .party .v{font-weight:600;color:#1C2B28;word-break:keep-all;overflow-wrap:anywhere;}
+  .party .v{font-weight:600;color:#1C2B28;word-break:keep-all;overflow-wrap:break-word;line-height:1.6;}
   .section{margin-bottom:19px;break-inside:avoid;}
   .section h3{font-size:12px;font-weight:700;color:#155855;margin-bottom:7px;
               padding-bottom:5px;border-bottom:1px solid #C8DDD9;
@@ -397,21 +397,22 @@ function buildContractHtml(q: QuoteData): string {
        padding:2px 7px;border-radius:10px;flex-shrink:0;}
   .section:nth-of-type(2n) .art{background:#E85D2C;}
   .clause{border-left:3px solid #155855;padding:4px 0 4px 14px;
-          font-size:11.5px;line-height:1.9;color:#2C3E3D;white-space:pre-line;}
+          font-size:11.3px;line-height:1.86;color:#2C3E3D;white-space:pre-line;
+          word-break:keep-all;overflow-wrap:break-word;}
   .quote-list{display:grid;gap:8px;margin-bottom:12px;}
-  .quote-item{display:grid;grid-template-columns:36px 1fr 128px;gap:12px;align-items:start;
+  .quote-item{display:grid;grid-template-columns:36px minmax(0,1fr) 132px;gap:12px;align-items:start;
               padding:11px 0;border-bottom:1px solid #E4F0EE;}
   .item-index{font-size:10px;font-weight:700;color:#E85D2C;}
-  .item-main strong{display:block;font-size:12.5px;color:#1C2B28;margin-bottom:2px;word-break:keep-all;}
-  .item-main span{display:block;font-size:10.5px;color:#6B8B87;line-height:1.55;word-break:keep-all;}
+  .item-main strong{display:block;font-size:12.5px;color:#1C2B28;margin-bottom:2px;word-break:keep-all;overflow-wrap:break-word;}
+  .item-main span{display:block;font-size:10.5px;color:#6B8B87;line-height:1.55;word-break:keep-all;overflow-wrap:break-word;}
   .item-main em{display:inline-block;margin-top:4px;font-style:normal;font-size:9px;color:#fff;
                 background:#155855;border-radius:99px;padding:1px 7px;}
   .item-amount{text-align:right;}
   .item-amount small{display:block;font-size:9px;color:#9BB5B0;margin-bottom:2px;}
   .item-amount b{font-size:12.5px;color:#155855;}
-  .amount-panel{display:grid;grid-template-columns:1fr 270px;gap:18px;align-items:end;
+  .amount-panel{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:18px;align-items:end;
                 border-top:2px solid #155855;padding-top:12px;}
-  .amount-note{font-size:10px;color:#6B8B87;line-height:1.7;}
+  .amount-note{font-size:10px;color:#6B8B87;line-height:1.7;word-break:keep-all;}
   .amt-row{display:flex;justify-content:space-between;padding:4px 0;font-size:11px;
            border-bottom:.5px solid #EEF4F3;}
   .amt-row .l{color:#6B8B87;}
