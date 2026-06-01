@@ -178,9 +178,9 @@ const addDays = (date: string, days: number) => {
   return toDateInputValue(next);
 };
 
-const createQuoteNumber = () => {
+const createQuoteNumber = (sequence = 1) => {
   const date = todayValue().replaceAll("-", "");
-  return `PC-${date}-001`;
+  return `PC-${date}-${String(sequence).padStart(3, "0")}`;
 };
 
 const initialCustomer = (): CustomerInfo => {
@@ -352,6 +352,19 @@ export default function QuoteBuilder() {
     });
   };
 
+  const createNextQuoteNumber = () => {
+    const date = todayValue().replaceAll("-", "");
+    const todayPrefix = `PC-${date}-`;
+    const usedNumbers = recentQuotes
+      .map((item) => item.quoteNumber)
+      .filter((quoteNumber) => quoteNumber.startsWith(todayPrefix))
+      .map((quoteNumber) => Number(quoteNumber.replace(todayPrefix, "")))
+      .filter((value) => Number.isFinite(value));
+    const nextSequence = usedNumbers.length ? Math.max(...usedNumbers) + 1 : 1;
+
+    return createQuoteNumber(nextSequence);
+  };
+
   const selectedPackage = useMemo(
     () => packages.find((item) => item.id === selectedPackageId) ?? null,
     [selectedPackageId]
@@ -463,7 +476,10 @@ export default function QuoteBuilder() {
   };
 
   const resetForm = () => {
-    setCustomer(initialCustomer());
+    setCustomer({
+      ...initialCustomer(),
+      quoteNumber: createNextQuoteNumber()
+    });
     setQuoteTitle("포토클리닉 브랜드사진 견적서");
     setSelectedPackageId(packages[0].id);
     setSelectedSingleItemIds([]);
@@ -563,7 +579,7 @@ export default function QuoteBuilder() {
   };
 
   const saveRecentQuote = (data: ContractQuoteData) => {
-    const next = [data, ...recentQuotes.filter((item) => item.quoteNumber !== data.quoteNumber)].slice(0, RECENT_QUOTES_LIMIT);
+    const next = [data, ...recentQuotes].slice(0, RECENT_QUOTES_LIMIT);
     setRecentQuotes(next);
     window.localStorage.setItem(RECENT_QUOTES_KEY, JSON.stringify(next));
   };
