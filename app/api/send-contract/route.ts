@@ -21,6 +21,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "계약서 파일 없음" }, { status: 400 });
   }
 
+  const greetingName = toName || hospitalName || "고객";
+
   const emailHtml = `<!DOCTYPE html>
 <html lang="ko">
 <head><meta charset="UTF-8"></head>
@@ -32,7 +34,7 @@ export async function POST(req: NextRequest) {
     </div>
     <div style="background:#fff;padding:28px;border:1px solid #C8DDD9;border-top:none;">
       <p style="font-size:15px;font-weight:700;color:#1C2B28;margin-bottom:7px;">
-        안녕하세요, ${toName || hospitalName} 담당자님
+        안녕하세요, ${greetingName}
       </p>
       <p style="font-size:13px;color:#5A7470;line-height:1.8;margin-bottom:18px;">
         ${message || "포토클리닉 촬영 계약서를 발송드립니다.<br>내용 확인 후 서명하여 회신 부탁드립니다."}
